@@ -5,7 +5,8 @@ Protocol (interface 2, usage page 0xFFFF): send a 65-byte feature report
 reply is tagged ``0xA1`` at byte 1 and echoes the command ``0x83`` at byte 6;
 charging lives at byte 7 and the percent at byte 8.
 
-Ported from the Rust ``lamzu-battery-monitor`` (see ``examples/``).
+Ported from the Rust ``lamzu-battery-monitor``:
+https://github.com/Sheroune/lamzu-battery-monitory
 """
 
 from __future__ import annotations
@@ -29,8 +30,12 @@ class LamzuDriver(HidDriver):
     vendor = "Lamzu"
     models = [
         MouseModel(
-            "Lamzu Maya X", 0x373E, 0x001E, 0x001C,
-            usage_page=_USAGE_PAGE, interface=_INTERFACE,
+            "Lamzu Maya X",
+            0x373E,
+            0x001E,
+            0x001C,
+            usage_page=_USAGE_PAGE,
+            interface=_INTERFACE,
         ),
     ]
 

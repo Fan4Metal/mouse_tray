@@ -11,7 +11,8 @@ Two wire protocols are in the wild:
   shows "charging" while wireless reads the percent at byte 7.
 
 A model's ``usage_page`` selects the protocol (v2 lives on 0xFF05), so a single
-driver serves both. See ``examples/ATK_tray`` for the reference implementation.
+driver serves both. Reference implementation:
+https://github.com/Fan4Metal/ATK_tray
 """
 
 from __future__ import annotations

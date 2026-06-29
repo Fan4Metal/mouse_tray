@@ -40,7 +40,11 @@ class NinjutsoDriver(HidDriver):
         online = bool(res[12])
         log.info(
             "%s battery=%s charging=%s full=%s online=%s",
-            self.name, percent, charging, full, online,
+            self.name,
+            percent,
+            charging,
+            full,
+            online,
         )
         return BatteryStatus(
             present=True,

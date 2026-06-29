@@ -9,7 +9,7 @@ them with ``hidapi`` like every other driver -- no pyusb / libusb needed.
 The battery level comes back as 0-255 and is scaled to a percent.
 
 NOTE: report byte offsets and the target HID collection were derived from the
-pyusb implementation (see ``examples/razer_tray``). If a Razer model reads
+pyusb implementation (https://github.com/Fan4Metal/razer_tray). If a Razer model reads
 wrong, confirm ``usage_page``/``usage`` and the response offset on hardware --
 that is the only vendor-specific part.
 """
