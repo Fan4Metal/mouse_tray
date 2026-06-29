@@ -1,7 +1,17 @@
-"""ATK / VXE / VGN mice (shared HID protocol).
+"""ATK / VXE / VGN mice (shared HID protocols).
 
-Protocol: interrupt write of a 17-byte report (ID 8) followed by a 17-byte
-read. Battery percent is at byte 6, the wired/charging flag at byte 7.
+Two wire protocols are in the wild:
+
+* **v1** (Nordic 52840 MCU): interrupt write of a 17-byte report (ID 8) then a
+  17-byte read. Battery percent is at byte 6, the wired/charging flag at byte 7.
+  Covers everything except ATK Zero.
+* **v2** (Nordic 54L15 MCU, ATK Zero): a 64-byte report (ID 8) tagged with
+  command 0x72, on a different HID collection (usage page 0xFF05). The request
+  differs by link, and the cable does not report a usable level -- so wired just
+  shows "charging" while wireless reads the percent at byte 7.
+
+A model's ``usage_page`` selects the protocol (v2 lives on 0xFF05), so a single
+driver serves both. See ``examples/ATK_tray`` for the reference implementation.
 """
 
 from __future__ import annotations
@@ -17,9 +27,18 @@ log = logging.getLogger(__name__)
 _USAGE_PAGE = 0xFF02
 _USAGE = 0x0002
 
+# ATK Zero speaks v2 on its own HID collection.
+_V2_USAGE_PAGE = 0xFF05
+_V2_USAGE = 0x0001
+_V2_CMD = 0x72
+
 
 def _m(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
     return MouseModel(name, vid, pid_wireless, pid_wired, _USAGE_PAGE, _USAGE)
+
+
+def _m2(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
+    return MouseModel(name, vid, pid_wireless, pid_wired, _V2_USAGE_PAGE, _V2_USAGE)
 
 
 @register
@@ -28,6 +47,7 @@ class AtkDriver(HidDriver):
     models = [
         _m("ATK F1 Ultimate", 0x373B, 0x1031, 0x102E),
         _m("ATK A9 Ultimate", 0x373B, 0x11D9, 0x11B6),
+        _m2("ATK Zero", 0x373B, 0x1155, 0x1154),
         _m("VXE MAD R", 0x373B, 0x104D, 0x103F),
         _m("VXE MAD R Major Plus", 0x373B, 0x1040, 0x104C),
         _m("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
@@ -36,6 +56,11 @@ class AtkDriver(HidDriver):
     ]
 
     def read_status(self) -> BatteryStatus:
+        if self.model.usage_page == _V2_USAGE_PAGE:
+            return self._read_v2()
+        return self._read_v1()
+
+    def _read_v1(self) -> BatteryStatus:
         report = [0] * 17
         report[0] = 8  # report ID
         report[1] = 4
@@ -54,3 +79,29 @@ class AtkDriver(HidDriver):
             full=wired and percent >= 100,
             asleep=False,
         )
+
+    def _read_v2(self) -> BatteryStatus:
+        wired = self._connected_wired()
+        report = [0] * 64
+        report[0] = 0x08  # report ID
+        report[1] = 0x7C if wired else 0x7D
+        report[2] = _V2_CMD
+        report[3] = 0x02
+        report[5] = 0x00 if wired else 0x01
+        report[6] = 0x07
+        report[7] = 0x01
+        res = self._transact(report, 64, feature=False, delay=0.1)
+        if res is None or len(res) < 8:
+            return BatteryStatus.absent()
+        if res[1] != _V2_CMD or res[5] != 0x07:
+            log.warning("%s unexpected v2 reply: %s", self.name, res[:8])
+            return BatteryStatus.absent()
+
+        if wired:
+            # On the cable v2 gives no usable level -- report charging only.
+            log.info("%s wired (v2): charging, level not reported", self.name)
+            return BatteryStatus(present=True, percent=None, charging=True)
+
+        percent = res[7]
+        log.info("%s battery=%s (v2, wireless)", self.name, percent)
+        return BatteryStatus(present=True, percent=percent, asleep=False)

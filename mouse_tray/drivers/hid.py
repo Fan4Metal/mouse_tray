@@ -40,6 +40,19 @@ class HidDriver(MouseDriver):
                 return cls(model)
         return None
 
+    def _connected_wired(self) -> bool:
+        """True when the device is reachable only on its wired PID.
+
+        Some protocols build a different request depending on the link (the
+        wired and wireless dongles enumerate under distinct PIDs). When a model
+        uses the same PID for both, the wireless PID always matches first and
+        this returns ``False`` -- drivers that don't care simply never call it.
+        """
+        model = self.model
+        if hid.enumerate(model.vid, model.pid_wireless):
+            return False
+        return bool(hid.enumerate(model.vid, model.pid_wired))
+
     def _device_path(self) -> bytes | None:
         """Resolve the OS device path for the battery HID collection.
 

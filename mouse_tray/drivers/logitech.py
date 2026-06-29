@@ -41,12 +41,23 @@ def _receiver(name: str, pid: int) -> MouseModel:
 class LogitechDriver(HidppDriver):
     vendor = "Logitech"
     # One entry per receiver PID; the actual mouse name is resolved over HID++.
+    # PIDs not marked "verified" come from Solaar's receiver table and are
+    # best-effort -- only HID++ 2.0 capable receivers belong here (older Nano /
+    # HID++ 1.0 dongles don't expose UnifiedBattery and would never read).
     models = [
+        # Lightspeed gaming receivers (incl. Powerplay mat, which is one too).
         _receiver("Logitech Lightspeed", 0xC54D),  # verified
         _receiver("Logitech Lightspeed", 0xC539),
         _receiver("Logitech Lightspeed", 0xC545),
+        _receiver("Logitech Lightspeed", 0xC53A),  # Powerplay
+        _receiver("Logitech Lightspeed", 0xC53F),
+        _receiver("Logitech Lightspeed", 0xC541),
+        _receiver("Logitech Lightspeed", 0xC547),
+        # Bolt receivers.
         _receiver("Logitech Bolt", 0xC548),
+        # Unifying receivers.
         _receiver("Logitech Unifying", 0xC52B),
+        _receiver("Logitech Unifying", 0xC532),
     ]
 
     def read_status(self) -> BatteryStatus:
