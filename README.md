@@ -124,7 +124,9 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X
 - **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
-  feature (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE
+  feature, via a receiver **or connected directly by USB cable / Bluetooth**
+  (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE
+  (receiver and wired)
 
 > The Razer driver was ported from a `pyusb` implementation to `hidapi` for
 > uniformity; the report offset / HID collection may need confirmation on

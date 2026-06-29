@@ -124,9 +124,10 @@ class AcmeDriver(HidDriver):
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X
-- **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery
+- **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
+  через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
   (название модели определяется автоматически по HID++) — проверено на
-  PRO X2 SUPERSTRIKE
+  PRO X2 SUPERSTRIKE (ресивер и провод)
 
 > Драйвер Razer портирован с реализации на `pyusb` на `hidapi` ради
 > единообразия; смещение в отчёте / HID-коллекцию может потребоваться уточнить

@@ -53,6 +53,10 @@ class LogitechDriver(HidppDriver):
         _receiver("Logitech Lightspeed", 0xC53F),
         _receiver("Logitech Lightspeed", 0xC541),
         _receiver("Logitech Lightspeed", 0xC547),
+        # Mice connected directly (USB cable / Bluetooth) expose HID++ under
+        # their own PID instead of a receiver's; the same code path works (the
+        # device answers on every index, so index 1 resolves). Verified wired.
+        _receiver("Logitech PRO X2 SUPERSTRIKE", 0xC0A8),
         # Bolt receivers.
         _receiver("Logitech Bolt", 0xC548),
         # Unifying receivers.
