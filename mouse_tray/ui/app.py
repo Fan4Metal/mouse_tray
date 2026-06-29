@@ -56,9 +56,11 @@ class TrayApp(wx.Frame):
         self.config = config
         self.icons = IconRenderer(config)
 
-        from ..storage import load_full_charge_date
-
-        self.full_charge_date = load_full_charge_date(config.app_name)
+        # The full-charge timer is per mouse, keyed by its display name. We
+        # only know which mouse is connected after detection, so the date is
+        # (re)loaded in _sync_mouse whenever the active mouse changes.
+        self.full_charge_date: datetime | None = None
+        self._current_mouse: str | None = None
         self.driver = None
         self._was_full = False
 
@@ -116,6 +118,8 @@ class TrayApp(wx.Frame):
 
     def _apply_status(self, status: BatteryStatus, name: str | None) -> None:
         """Render one status snapshot. The single point that drives the tray."""
+        self._sync_mouse(name)
+
         if not status.present:
             self._stop_animation()
             self._was_full = False
@@ -151,6 +155,16 @@ class TrayApp(wx.Frame):
 
         self.tray.update(self.icons.text_icon(str(status.percent)), tooltip)
 
+    def _sync_mouse(self, name: str | None) -> None:
+        """Load the active mouse's own full-charge date when the mouse changes."""
+        if name is None or name == self._current_mouse:
+            return
+        from ..storage import load_full_charge_date
+
+        self._current_mouse = name
+        self.full_charge_date = load_full_charge_date(self.config.app_name, name)
+        self._was_full = False  # don't carry full-state across a mouse switch
+
     def _tooltip(self, name: str | None) -> str:
         label = name or _NO_MOUSE
         if self.full_charge_date:
@@ -179,11 +193,13 @@ class TrayApp(wx.Frame):
     # --- full-charge timer --------------------------------------------------
 
     def _record_full_charge(self, when: datetime | None = None) -> None:
+        if self._current_mouse is None:
+            return  # no active mouse to attribute the timer to
         from ..storage import save_full_charge_date
 
         self.full_charge_date = when or datetime.now()
-        save_full_charge_date(self.config.app_name, self.full_charge_date)
-        log.info("Full charge timer set to %s", self.full_charge_date)
+        save_full_charge_date(self.config.app_name, self._current_mouse, self.full_charge_date)
+        log.info("Full charge timer for %s set to %s", self._current_mouse, self.full_charge_date)
 
     def _reset_timer(self) -> None:
         self._record_full_charge()
