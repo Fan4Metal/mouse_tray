@@ -37,6 +37,14 @@ class LamzuDriver(HidDriver):
             usage_page=_USAGE_PAGE,
             interface=_INTERFACE,
         ),
+        MouseModel(
+            "Lamzu Inca",
+            0x37B0,
+            0x0010,
+            0x0009,
+            usage_page=_USAGE_PAGE,
+            interface=_INTERFACE,
+        ),
     ]
 
     def read_status(self) -> BatteryStatus:

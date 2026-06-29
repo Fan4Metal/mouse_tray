@@ -123,7 +123,7 @@ class AcmeDriver(HidDriver):
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
-- **Lamzu:** Maya X
+- **Lamzu:** Maya X, Inca
 - **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
   через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
   (название модели определяется автоматически по HID++) — проверено на

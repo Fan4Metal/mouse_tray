@@ -122,7 +122,7 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
-- **Lamzu:** Maya X
+- **Lamzu:** Maya X, Inca
 - **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
   feature, via a receiver **or connected directly by USB cable / Bluetooth**
   (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE
