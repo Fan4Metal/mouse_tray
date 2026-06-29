@@ -6,7 +6,7 @@
 Одно приложение, много производителей — добавление нового вендора или модели —
 это один небольшой файл, без изменений в UI и коде опроса.
 
-![Скриншот](examples/ATK_tray/images/screenshot.png)
+![Скриншот](images/screenshot.png)
 
 ## Как это работает
 
@@ -119,8 +119,8 @@ class AcmeDriver(HidDriver):
 
 ## Поддерживаемые модели
 
-- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, VXE MAD R, VXE MAD R
-  Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
+  VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X

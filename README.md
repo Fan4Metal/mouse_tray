@@ -6,7 +6,7 @@ A **universal** wireless-mouse battery indicator for the Windows system tray.
 One app, many vendors — adding a new manufacturer or model is a single small
 file, no changes to the UI or polling code.
 
-![Screenshot](examples/ATK_tray/images/screenshot.png)
+![Screenshot](images/screenshot.png)
 
 ## How it works
 
@@ -118,8 +118,8 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 
 ## Supported models
 
-- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, VXE MAD R, VXE MAD R
-  Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
+  VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X
