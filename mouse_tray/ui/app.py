@@ -1,0 +1,222 @@
+"""Application entry point: the wx app, the polling loop and the one state
+machine that turns any :class:`BatteryStatus` into a tray icon.
+
+All vendor differences are already gone by the time we get here -- this module
+never imports a driver, only the registry's :func:`detect_driver`.
+"""
+
+from __future__ import annotations
+
+import ctypes
+import logging
+import threading
+from datetime import datetime, timedelta
+
+import wx
+from wx.adv import NotificationMessage
+
+from ..battery import BatteryStatus
+from ..config import Config, config as default_config
+from ..drivers import detect_driver
+from ..logging_setup import setup_logging
+from .icons import (
+    ICON_BATTERY_0,
+    ICON_BATTERY_50,
+    ICON_BATTERY_100,
+    ICON_BATTERY_100_GREEN,
+    IconRenderer,
+)
+from .tray import TrayIcon
+
+log = logging.getLogger(__name__)
+
+_ANIMATION_FRAMES = (ICON_BATTERY_0, ICON_BATTERY_50, ICON_BATTERY_100)
+_ANIMATION_INTERVAL_MS = 500
+_NO_MOUSE = "No Mouse Detected"
+
+
+def format_timedelta(delta: timedelta) -> str:
+    """Format a duration like ``"1 days, 23:59:59"``."""
+    days = delta.days
+    seconds = int(delta.total_seconds()) - days * 86400
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{days} days, {hours:02d}:{minutes:02d}:{secs:02d}"
+
+
+class TrayApp(wx.Frame):
+    """Hidden frame that owns the tray icon, notification and worker thread.
+
+    A frame is needed because ``NotificationMessage`` and the wx main loop
+    require a top-level window; it never becomes visible.
+    """
+
+    def __init__(self, config: Config):
+        super().__init__(None, title=config.app_name)
+        self.config = config
+        self.icons = IconRenderer(config)
+
+        from ..storage import load_full_charge_date
+
+        self.full_charge_date = load_full_charge_date(config.app_name)
+        self.driver = None
+        self._was_full = False
+
+        self.tray = TrayIcon(
+            on_left_click=self._wake,
+            on_reset_timer=self._reset_timer,
+            on_exit=self._exit,
+        )
+        self.tray.update(self.icons.text_icon(" "), config.app_name)
+
+        self.notification = NotificationMessage(title=config.app_name, message="Charged 100%")
+        self.notification.SetFlags(wx.ICON_INFORMATION)
+        self.notification.UseTaskBarIcon(self.tray)
+
+        # Charge animation runs on the main thread via a timer.
+        self._anim_timer = wx.Timer(self)
+        self._anim_index = 0
+        self._anim_tooltip = config.app_name
+        self.Bind(wx.EVT_TIMER, self._on_anim_tick, self._anim_timer)
+
+        # Polling runs on a background thread; it only ever calls back into the
+        # UI through wx.CallAfter, so all widget work stays on the main thread.
+        self._stop = threading.Event()
+        self._wakeup = threading.Event()
+        self._worker = threading.Thread(target=self._poll_loop, daemon=True)
+        self._worker.start()
+
+    # --- polling thread -----------------------------------------------------
+
+    def _poll_loop(self) -> None:
+        while not self._stop.is_set():
+            if self.driver is None:
+                self.driver = detect_driver()
+
+            if self.driver is None:
+                status, name = BatteryStatus.absent(), None
+            else:
+                status = self.driver.read_status()
+                name = self.driver.name
+                if not status.present:
+                    self.driver = None  # hot-unplug / model switch -> re-detect
+
+            wx.CallAfter(self._apply_status, status, name)
+
+            awake = status.present and not status.charging and not status.asleep
+            interval = self.config.poll_rate if awake else self.config.fast_poll_rate
+            self._wakeup.wait(interval)
+            self._wakeup.clear()
+
+    def _wake(self) -> None:
+        """Trigger an immediate re-poll (e.g. tray clicked to wake a mouse)."""
+        self._wakeup.set()
+
+    # --- state machine (main thread) ---------------------------------------
+
+    def _apply_status(self, status: BatteryStatus, name: str | None) -> None:
+        """Render one status snapshot. The single point that drives the tray."""
+        if not status.present:
+            self._stop_animation()
+            self._was_full = False
+            self.tray.update(self.icons.text_icon("-"), _NO_MOUSE)
+            return
+
+        tooltip = self._tooltip(name)
+
+        if status.charging:
+            self._was_full = False
+            self._start_animation(tooltip)
+            return
+
+        self._stop_animation()
+
+        if status.full:
+            self.tray.update(self.icons.file_icon(ICON_BATTERY_100_GREEN), tooltip)
+            if not self._was_full:
+                self._was_full = True
+                self._record_full_charge()
+                self.notification.Show(timeout=NotificationMessage.Timeout_Auto)
+            return
+
+        self._was_full = False
+
+        if status.asleep:
+            self.tray.update(self.icons.text_icon("Zzz"), tooltip)
+            return
+
+        if status.percent == 100:
+            self.tray.update(self.icons.file_icon(ICON_BATTERY_100), tooltip)
+            return
+
+        self.tray.update(self.icons.text_icon(str(status.percent)), tooltip)
+
+    def _tooltip(self, name: str | None) -> str:
+        label = name or _NO_MOUSE
+        if self.full_charge_date:
+            delta = datetime.now() - self.full_charge_date
+            return f"{label}\n{format_timedelta(delta)}"
+        return label
+
+    # --- animation ----------------------------------------------------------
+
+    def _start_animation(self, tooltip: str) -> None:
+        self._anim_tooltip = tooltip
+        if not self._anim_timer.IsRunning():
+            self._anim_index = 0
+            self._on_anim_tick()
+            self._anim_timer.Start(_ANIMATION_INTERVAL_MS)
+
+    def _stop_animation(self) -> None:
+        if self._anim_timer.IsRunning():
+            self._anim_timer.Stop()
+
+    def _on_anim_tick(self, _evt: wx.TimerEvent | None = None) -> None:
+        frame = _ANIMATION_FRAMES[self._anim_index % len(_ANIMATION_FRAMES)]
+        self._anim_index += 1
+        self.tray.update(self.icons.file_icon(frame), self._anim_tooltip)
+
+    # --- full-charge timer --------------------------------------------------
+
+    def _record_full_charge(self, when: datetime | None = None) -> None:
+        from ..storage import save_full_charge_date
+
+        self.full_charge_date = when or datetime.now()
+        save_full_charge_date(self.config.app_name, self.full_charge_date)
+        log.info("Full charge timer set to %s", self.full_charge_date)
+
+    def _reset_timer(self) -> None:
+        self._record_full_charge()
+
+    # --- lifecycle ----------------------------------------------------------
+
+    def _exit(self) -> None:
+        self._stop.set()
+        self._wakeup.set()
+        self._stop_animation()
+        self.tray.RemoveIcon()
+        self.tray.Destroy()
+        self.Destroy()
+
+
+class _App(wx.App):
+    def __init__(self, config: Config):
+        self._config = config
+        super().__init__(False)
+
+    def OnInit(self) -> bool:  # noqa: N802 (wx override)
+        frame = TrayApp(self._config)
+        self.SetTopWindow(frame)
+        return True
+
+
+def run(config: Config | None = None) -> None:
+    """Launch the tray application."""
+    cfg = config or default_config
+    setup_logging(cfg.app_name, cfg.debug)
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except (AttributeError, OSError):
+        pass  # non-Windows or older Windows
+    app = _App(cfg)
+    app.MainLoop()

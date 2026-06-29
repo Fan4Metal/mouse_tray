@@ -1,0 +1,145 @@
+# Mouse Tray Charge
+
+**English** | [Русский](README.ru.md)
+
+A **universal** wireless-mouse battery indicator for the Windows system tray.
+One app, many vendors — adding a new manufacturer or model is a single small
+file, no changes to the UI or polling code.
+
+![Screenshot](examples/ATK_tray/images/screenshot.png)
+
+## How it works
+
+Every mouse, regardless of vendor, is reduced to one normalized
+[`BatteryStatus`](mouse_tray/battery.py) — `present / percent / charging / full
+/ asleep`. A single state machine in [`ui/app.py`](mouse_tray/ui/app.py) renders
+that into the tray icon (digits, charging animation, full-charge notification,
+"time since last full charge" tooltip). Vendor code only does two things:
+**detect the device** and **parse its battery report**.
+
+```
+mouse_tray/
+  battery.py            BatteryStatus — the universal status model
+  config.py             settings (poll rate, colors, font)
+  resources.py          PyInstaller-safe resource paths
+  storage.py            "last full charge" timestamp (Windows registry)
+  drivers/
+    driver.py           MouseModel, MouseDriver, @register + registry
+    hid.py              HidDriver — shared single-transaction hidapi base
+    hidpp.py            HidppDriver — multi-step HID++ base (Logitech)
+    atk.py              ATK / VXE / VGN   (HID write/read, report 8)
+    ninjutso.py         Ninjutso Sora     (HID feature report 5)
+    razer.py            Razer             (HID feature report 0, OpenRazer)
+    lamzu.py            Lamzu             (HID feature report, iface 2)
+    logitech.py         Logitech          (HID++ 2.0 via receiver)
+    __init__.py         auto-imports drivers -> registry is populated
+  ui/
+    icons.py            tray icon rendering (PIL text + .ico)
+    tray.py             TaskBarIcon wrapper
+    app.py              wx app + the single state machine
+  icons/                bundled .ico assets
+```
+
+## Run from source
+
+```sh
+uv sync
+uv run python main.py        # or:  uv run python -m mouse_tray
+```
+
+## Build a standalone .exe
+
+```sh
+uv run --extra build python tools/make_release.py
+# -> dist/mouse_tray/
+```
+
+## Adding a new mouse
+
+**Same vendor, new model** — add a row to that driver's `models` list:
+
+```python
+# drivers/atk.py
+_m("VXE NewModel", 0x373B, 0x1234, 0x5678),
+```
+
+**New vendor** — create `drivers/<vendor>.py`, subclass `HidDriver`, list the
+models and implement `read_status()`:
+
+```python
+from ..battery import BatteryStatus
+from .driver import MouseModel, register
+from .hid import HidDriver
+
+@register
+class AcmeDriver(HidDriver):
+    vendor = "Acme"
+    models = [MouseModel("Acme X1", 0xABCD, 0x0001, 0x0002, usage_page=0xFF00)]
+
+    def read_status(self) -> BatteryStatus:
+        res = self._transact([0x00, ...], read_length=32, feature=True)
+        if res is None:
+            return BatteryStatus.absent()
+        return BatteryStatus(present=True, percent=res[5], charging=bool(res[6]))
+```
+
+Then add `"acme"` to `_DRIVER_MODULES` in
+[`drivers/__init__.py`](mouse_tray/drivers/__init__.py). Done — detection, the
+tray UI and packaging pick it up automatically.
+
+> Most mice fit `HidDriver` (one request, fixed offsets). Multi-step protocols
+> like Logitech HID++ instead subclass `HidppDriver` — but they return the same
+> `BatteryStatus`, so the UI/registry are unchanged either way. That the two
+> very different transports plug into one `MouseDriver` contract is the whole
+> point of the design.
+
+## Settings
+
+Edit [`mouse_tray/config.py`](mouse_tray/config.py):
+
+| Field              | Meaning                                            |
+| ------------------ | -------------------------------------------------- |
+| `poll_rate`        | Seconds between reads while awake & discharging    |
+| `fast_poll_rate`   | Seconds between reads while charging/asleep/absent |
+| `foreground_color` | RGB color of the indicator digits                  |
+| `background_color` | RGBA icon background (transparent by default)      |
+| `font`             | Font file for the digits (`consola.ttf`)           |
+| `app_name`         | Tray title, notification title, registry key, logs |
+| `debug`            | Verbose DEBUG logging (raw HID reports)            |
+
+## Logging
+
+Logs go to a rotating file at `%LOCALAPPDATA%\Mouse_Tray\app.log` (1 MB × 3
+backups), plus the console when one is available — under the windowed `.exe`
+build there is no console, so the file is the place to look. Enable verbose
+DEBUG output (raw HID reports) with the `debug` config flag or by setting the
+`MOUSE_TRAY_DEBUG=1` environment variable. Configured in
+[`mouse_tray/logging_setup.py`](mouse_tray/logging_setup.py).
+
+## Supported models
+
+- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, VXE MAD R, VXE MAD R
+  Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **Ninjutso:** Sora V2
+- **Razer:** Viper V2 Pro
+- **Lamzu:** Maya X
+- **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
+  feature (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE
+
+> The Razer driver was ported from a `pyusb` implementation to `hidapi` for
+> uniformity; the report offset / HID collection may need confirmation on
+> hardware (see the note in [`drivers/razer.py`](mouse_tray/drivers/razer.py)).
+
+## Protocol sources & credits
+
+Each driver's protocol was ported from (or verified against) these projects:
+
+- **ATK / VXE / VGN** — [Fan4Metal/ATK_tray](https://github.com/Fan4Metal/ATK_tray)
+- **Ninjutso** — [Fan4Metal/Sora_tray](https://github.com/Fan4Metal/Sora_tray)
+- **Razer** — [Fan4Metal/razer_tray](https://github.com/Fan4Metal/razer_tray),
+  based on [OpenRazer](https://github.com/openrazer/openrazer) and
+  [rsmith-nl/scripts](https://github.com/rsmith-nl/scripts)
+- **Lamzu** — [Sheroune/lamzu-battery-monitory](https://github.com/Sheroune/lamzu-battery-monitory)
+- **Logitech (HID++ 2.0)** — [l2-/LogitechBatteryIndicator](https://github.com/l2-/LogitechBatteryIndicator),
+  with protocol details from [Solaar](https://github.com/pwr-Solaar/Solaar) and
+  [libratbag](https://github.com/libratbag/libratbag)
