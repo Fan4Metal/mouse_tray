@@ -65,6 +65,12 @@ uv run --extra build python tools/make_release.py
 _v1("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
+> Драйвер ATK покрывает общий **чипсет Compx/Nordic**, а не только эти три
+> бренда. Многие «ноунейм»-мыши на том же кремнии (ресивер определяется как
+> «Compx») заводятся одной строкой `_v1` с их VID/PID — без нового драйвера.
+> Zaopin Z2 Mini добавлен именно так; если процент читается в байте 6 ответа на
+> отчёт 8 — это тот самый протокол.
+
 **Новый вендор** — создайте `drivers/<vendor>.py`, унаследуйте `HidDriver`,
 перечислите модели и реализуйте `read_status()`:
 
@@ -129,6 +135,7 @@ class AcmeDriver(HidDriver):
 
 - **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **Zaopin:** Z2 Mini
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X, Inca

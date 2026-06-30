@@ -13,6 +13,15 @@ Two wire protocols are in the wild:
 A model's ``usage_page`` selects the protocol (v2 lives on 0xFF05), so a single
 driver serves both. Reference implementation:
 https://github.com/Fan4Metal/ATK_tray
+
+These are really the shared protocols of the underlying Compx/Nordic silicon
+(receivers enumerate as "Compx"), not anything brand-specific, so same-chipset
+rebrands beyond ATK/VXE/VGN fit too -- e.g. the Zaopin Z2 Mini speaks plain v1.
+Adding such a mouse is just one more ``_v1`` (or ``_v2``) row with its VID/PID.
+Unlike v2, v1 reports a usable level on the cable as well, with byte 7
+distinguishing wired from wireless -- confirmed from Zaopin captures reading the
+percent at byte 6 over both the 2.4G receiver (byte 7 = 0) and a direct cable
+(byte 7 = 1).
 """
 
 from __future__ import annotations
@@ -54,6 +63,8 @@ class AtkDriver(HidDriver):
         _v1("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
         _v1("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
         _v1("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
+        # Compx rebrand on the same v1 silicon; receiver F524, direct cable F526.
+        _v1("Zaopin Z2 Mini", 0x3554, 0xF524, 0xF526),
     ]
 
     def read_status(self) -> BatteryStatus:

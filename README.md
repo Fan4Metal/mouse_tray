@@ -64,6 +64,12 @@ uv run --extra build python tools/make_release.py
 _v1("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
+> The ATK driver covers the shared **Compx/Nordic chipset**, not just those three
+> brands. Many off-brand mice ride the same silicon (the receiver enumerates as
+> "Compx") and work by adding a single `_v1` row with their VID/PID — no new
+> driver. The Zaopin Z2 Mini was added exactly this way; if a percent reads at
+> byte 6 of the report-8 reply, it's this protocol.
+
 **New vendor** — create `drivers/<vendor>.py`, subclass `HidDriver`, list the
 models and implement `read_status()`:
 
@@ -127,6 +133,7 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 
 - **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **Zaopin:** Z2 Mini
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X, Inca

@@ -20,8 +20,7 @@ right one.
 The push only happens on the wireless link. Plugged in *directly* by cable the
 mouse enumerates under its own wired PID and never pushes a battery report, so
 that mode is reported as charging without a level (same as the ATK v2 driver).
-Reverse-engineered from a USB capture of the Attack Shark X3 (see
-``examples/Attack shark/``).
+Reverse-engineered from a USB capture of the Attack Shark X3.
 """
 
 from __future__ import annotations
