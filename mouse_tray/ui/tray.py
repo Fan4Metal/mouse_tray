@@ -20,11 +20,13 @@ class TrayIcon(TaskBarIcon):
         *,
         on_left_click: Callable[[], None],
         on_reset_timer: Callable[[], None],
+        on_settings: Callable[[], None],
         on_exit: Callable[[], None],
     ):
         super().__init__()
         self._on_left_click = on_left_click
         self._on_reset_timer = on_reset_timer
+        self._on_settings = on_settings
         self._on_exit = on_exit
         self.Bind(wx.adv.EVT_TASKBAR_LEFT_DOWN, lambda _evt: self._on_left_click())
 
@@ -32,6 +34,9 @@ class TrayIcon(TaskBarIcon):
         menu = wx.Menu()
         reset_item = menu.Append(wx.ID_ANY, "Reset timer")
         self.Bind(wx.EVT_MENU, lambda _evt: self._on_reset_timer(), reset_item)
+        settings_item = menu.Append(wx.ID_PREFERENCES, "Settings...")
+        self.Bind(wx.EVT_MENU, lambda _evt: self._on_settings(), settings_item)
+        menu.AppendSeparator()
         exit_item = menu.Append(wx.ID_EXIT, "Exit")
         self.Bind(wx.EVT_MENU, lambda _evt: self._on_exit(), exit_item)
         return menu

@@ -95,7 +95,13 @@ tray UI and packaging pick it up automatically.
 
 ## Settings
 
-Edit [`mouse_tray/config.py`](mouse_tray/config.py):
+Right-click the tray icon and choose **Settings…** to change the poll interval,
+font, font color and debug logging from a dialog. Changes apply immediately and
+are saved to the registry (`HKCU\SOFTWARE\Mouse_Tray\Settings`), so they survive
+restarts; **Reset to defaults** restores the code defaults.
+
+For the full set of fields (including those not exposed in the dialog), edit
+[`mouse_tray/config.py`](mouse_tray/config.py):
 
 | Field              | Meaning                                            |
 | ------------------ | -------------------------------------------------- |

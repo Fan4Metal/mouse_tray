@@ -67,6 +67,7 @@ class TrayApp(wx.Frame):
         self.tray = TrayIcon(
             on_left_click=self._wake,
             on_reset_timer=self._reset_timer,
+            on_settings=self._open_settings,
             on_exit=self._exit,
         )
         self.tray.update(self.icons.text_icon(" "), config.app_name)
@@ -204,6 +205,22 @@ class TrayApp(wx.Frame):
     def _reset_timer(self) -> None:
         self._record_full_charge()
 
+    # --- settings -----------------------------------------------------------
+
+    def _open_settings(self) -> None:
+        from ..storage import save_settings
+        from .settings import open_settings
+
+        if not open_settings(self, self.config):
+            return
+
+        # self.config is mutated in place, so IconRenderer (which holds the same
+        # reference) picks up the new font/color and the worker thread reads the
+        # new poll rate on its next iteration. Persist and refresh now.
+        save_settings(self.config.app_name, self.config)
+        setup_logging(self.config.app_name, self.config.debug)
+        self._wake()  # force an immediate re-poll so the icon repaints
+
     # --- lifecycle ----------------------------------------------------------
 
     def _exit(self) -> None:
@@ -228,7 +245,10 @@ class _App(wx.App):
 
 def run(config: Config | None = None) -> None:
     """Launch the tray application."""
+    from ..storage import load_settings
+
     cfg = config or default_config
+    load_settings(cfg.app_name, cfg)  # apply any persisted user settings
     setup_logging(cfg.app_name, cfg.debug)
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
