@@ -34,11 +34,11 @@ _V2_USAGE = 0x0001
 _V2_CMD = 0x72
 
 
-def _m(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
+def _v1(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
     return MouseModel(name, vid, pid_wireless, pid_wired, _USAGE_PAGE, _USAGE)
 
 
-def _m2(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
+def _v2(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
     return MouseModel(name, vid, pid_wireless, pid_wired, _V2_USAGE_PAGE, _V2_USAGE)
 
 
@@ -46,14 +46,14 @@ def _m2(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
 class AtkDriver(HidDriver):
     vendor = "ATK / VXE / VGN"
     models = [
-        _m("ATK F1 Ultimate", 0x373B, 0x1031, 0x102E),
-        _m("ATK A9 Ultimate", 0x373B, 0x11D9, 0x11B6),
-        _m2("ATK Zero", 0x373B, 0x1155, 0x1154),
-        _m("VXE MAD R", 0x373B, 0x104D, 0x103F),
-        _m("VXE MAD R Major Plus", 0x373B, 0x1040, 0x104C),
-        _m("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
-        _m("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
-        _m("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
+        _v1("ATK F1 Ultimate", 0x373B, 0x1031, 0x102E),
+        _v1("ATK A9 Ultimate", 0x373B, 0x11D9, 0x11B6),
+        _v2("ATK Zero", 0x373B, 0x1155, 0x1154),
+        _v1("VXE MAD R", 0x373B, 0x104D, 0x103F),
+        _v1("VXE MAD R Major Plus", 0x373B, 0x1040, 0x104C),
+        _v1("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
+        _v1("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
+        _v1("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
     ]
 
     def read_status(self) -> BatteryStatus:

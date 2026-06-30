@@ -62,7 +62,7 @@ uv run --extra build python tools/make_release.py
 
 ```python
 # drivers/atk.py
-_m("VXE NewModel", 0x373B, 0x1234, 0x5678),
+_v1("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
 **Новый вендор** — создайте `drivers/<vendor>.py`, унаследуйте `HidDriver`,
