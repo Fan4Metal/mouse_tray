@@ -32,6 +32,7 @@ mouse_tray/
     razer.py            Razer             (HID feature report 0, OpenRazer)
     lamzu.py            Lamzu             (HID feature report, iface 2)
     logitech.py         Logitech          (HID++ 2.0 via receiver)
+    attackshark.py      Attack Shark      (pushed HID input report 3)
     __init__.py         auto-imports drivers -> registry is populated
   ui/
     icons.py            tray icon rendering (PIL text + .ico)
@@ -129,6 +130,7 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X, Inca
+- **Attack Shark:** X3
 - **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
   feature, via a receiver **or connected directly by USB cable / Bluetooth**
   (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE

@@ -28,6 +28,7 @@ _DRIVER_MODULES = [
     "razer",
     "lamzu",
     "logitech",
+    "attackshark",
 ]
 
 for _name in _DRIVER_MODULES:

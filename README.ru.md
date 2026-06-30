@@ -33,6 +33,7 @@ mouse_tray/
     razer.py            Razer             (HID feature-отчёт 0, OpenRazer)
     lamzu.py            Lamzu             (HID feature-отчёт, iface 2)
     logitech.py         Logitech          (HID++ 2.0 через приёмник)
+    attackshark.py      Attack Shark      (входящий HID-отчёт 3, push)
     __init__.py         авто-импорт драйверов -> реестр заполняется
   ui/
     icons.py            отрисовка значка трея (PIL-текст + .ico)
@@ -131,6 +132,7 @@ class AcmeDriver(HidDriver):
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro
 - **Lamzu:** Maya X, Inca
+- **Attack Shark:** X3
 - **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
   через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
   (название модели определяется автоматически по HID++) — проверено на
