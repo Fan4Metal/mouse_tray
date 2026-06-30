@@ -134,7 +134,13 @@ class HidppDriver(MouseDriver):
         deadline = time.time() + timeout
         while time.time() < deadline:
             for handle in (short_h, long_h):
-                res = handle.read(20)
+                try:
+                    res = handle.read(20)
+                except OSError as exc:
+                    # The receiver was unplugged mid-read (hot-unplug) -- bail out
+                    # now; next poll's _connection sees no collections -> absent.
+                    log.warning("%s HID++ read failed: %s", self.model.name, exc)
+                    return None
                 if not res or res[1] != dev:
                     continue
                 if res[2] == _ERROR_MARKER and res[3] == feature_index:
