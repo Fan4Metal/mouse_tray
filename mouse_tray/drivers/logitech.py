@@ -32,7 +32,8 @@ _FULL_STATE = 3
 _ASLEEP = BatteryStatus(present=True, asleep=True)
 
 
-def _receiver(name: str, pid: int) -> MouseModel:
+def _hidpp_device(name: str, pid: int) -> MouseModel:
+    # A HID++ endpoint -- a receiver or a mouse connected directly. Either way
     # HID++ lives on interface 2 / usage page 0xFF00 (short + long collections).
     return MouseModel(name, 0x046D, pid, pid, usage_page=0xFF00, interface=2)
 
@@ -40,28 +41,28 @@ def _receiver(name: str, pid: int) -> MouseModel:
 @register
 class LogitechDriver(HidppDriver):
     vendor = "Logitech"
-    # One entry per receiver PID; the actual mouse name is resolved over HID++.
-    # PIDs not marked "verified" come from Solaar's receiver table and are
-    # best-effort -- only HID++ 2.0 capable receivers belong here (older Nano /
-    # HID++ 1.0 dongles don't expose UnifiedBattery and would never read).
+    # One entry per PID, mostly receivers; the actual mouse name is resolved
+    # over HID++. PIDs not marked "verified" come from Solaar's receiver table
+    # and are best-effort -- only HID++ 2.0 capable receivers belong here (older
+    # Nano / HID++ 1.0 dongles don't expose UnifiedBattery and would never read).
     models = [
         # Lightspeed gaming receivers (incl. Powerplay mat, which is one too).
-        _receiver("Logitech Lightspeed", 0xC54D),  # verified
-        _receiver("Logitech Lightspeed", 0xC539),
-        _receiver("Logitech Lightspeed", 0xC545),
-        _receiver("Logitech Lightspeed", 0xC53A),  # Powerplay
-        _receiver("Logitech Lightspeed", 0xC53F),
-        _receiver("Logitech Lightspeed", 0xC541),
-        _receiver("Logitech Lightspeed", 0xC547),
+        _hidpp_device("Logitech Lightspeed", 0xC54D),  # verified
+        _hidpp_device("Logitech Lightspeed", 0xC539),
+        _hidpp_device("Logitech Lightspeed", 0xC545),
+        _hidpp_device("Logitech Lightspeed", 0xC53A),  # Powerplay
+        _hidpp_device("Logitech Lightspeed", 0xC53F),
+        _hidpp_device("Logitech Lightspeed", 0xC541),
+        _hidpp_device("Logitech Lightspeed", 0xC547),
         # Mice connected directly (USB cable / Bluetooth) expose HID++ under
         # their own PID instead of a receiver's; the same code path works (the
         # device answers on every index, so index 1 resolves). Verified wired.
-        _receiver("Logitech PRO X2 SUPERSTRIKE", 0xC0A8),
+        _hidpp_device("Logitech PRO X2 SUPERSTRIKE", 0xC0A8),
         # Bolt receivers.
-        _receiver("Logitech Bolt", 0xC548),
+        _hidpp_device("Logitech Bolt", 0xC548),
         # Unifying receivers.
-        _receiver("Logitech Unifying", 0xC52B),
-        _receiver("Logitech Unifying", 0xC532),
+        _hidpp_device("Logitech Unifying", 0xC52B),
+        _hidpp_device("Logitech Unifying", 0xC532),
     ]
 
     def read_status(self) -> BatteryStatus:
