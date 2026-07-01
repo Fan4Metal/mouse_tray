@@ -18,6 +18,7 @@ import wx.adv
 from PIL import ImageFont
 
 from ..config import Config
+from ..resources import icon_path
 
 
 def open_settings(parent: wx.Window, config: Config) -> bool:
@@ -101,6 +102,7 @@ class _FontPicker(wx.adv.OwnerDrawnComboBox):
 class _SettingsDialog(wx.Dialog):
     def __init__(self, parent: wx.Window, config: Config):
         super().__init__(parent, title=f"{config.app_name} settings")
+        self.SetIcon(wx.Icon(icon_path("app.ico")))
 
         file_map = _font_files()
         faces = sorted(
@@ -113,7 +115,7 @@ class _SettingsDialog(wx.Dialog):
             os.path.basename(path).lower(): face for face, path in self._face_to_path.items()
         }
 
-        grid = wx.FlexGridSizer(rows=4, cols=2, vgap=8, hgap=8)
+        grid = wx.FlexGridSizer(rows=5, cols=2, vgap=8, hgap=8)
         grid.AddGrowableCol(1, 1)
 
         grid.Add(wx.StaticText(self, label="Poll interval (s):"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -127,6 +129,15 @@ class _SettingsDialog(wx.Dialog):
         grid.Add(wx.StaticText(self, label="Font color:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self._color = wx.ColourPickerCtrl(self, colour=wx.Colour(*config.foreground_color))
         grid.Add(self._color, 0)
+
+        dynamic_label = wx.StaticText(self, label="Color by charge level:")
+        grid.Add(dynamic_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._dynamic_color = wx.CheckBox(self)
+        self._dynamic_color.SetValue(config.dynamic_color)
+        dynamic_tip = "Color the battery percent by charge:\nred ≤ 20%, yellow ≤ 50%, green > 50%"
+        dynamic_label.SetToolTip(dynamic_tip)
+        self._dynamic_color.SetToolTip(dynamic_tip)
+        grid.Add(self._dynamic_color, 0, wx.ALIGN_CENTER_VERTICAL)
 
         grid.Add(wx.StaticText(self, label="Debug logging:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self._debug = wx.CheckBox(self)
@@ -167,6 +178,7 @@ class _SettingsDialog(wx.Dialog):
         self._poll.SetValue(defaults.poll_rate)
         self._select_font(defaults.font)
         self._color.SetColour(wx.Colour(*defaults.foreground_color))
+        self._dynamic_color.SetValue(defaults.dynamic_color)
         self._debug.SetValue(defaults.debug)
 
     def _on_ok(self, evt: wx.CommandEvent) -> None:
@@ -193,4 +205,5 @@ class _SettingsDialog(wx.Dialog):
             config.font = self._face_to_path[face]
         colour = self._color.GetColour()
         config.foreground_color = (colour.Red(), colour.Green(), colour.Blue())
+        config.dynamic_color = self._dynamic_color.GetValue()
         config.debug = self._debug.GetValue()

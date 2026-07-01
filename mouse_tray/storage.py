@@ -88,6 +88,7 @@ def save_settings(app_name: str, config: Config) -> None:
             winreg.SetValueEx(key, "PollRate", 0, winreg.REG_DWORD, int(config.poll_rate))
             winreg.SetValueEx(key, "Font", 0, winreg.REG_SZ, config.font)
             winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, _color_to_str(config.foreground_color))
+            winreg.SetValueEx(key, "DynamicColor", 0, winreg.REG_DWORD, 1 if config.dynamic_color else 0)
             winreg.SetValueEx(key, "Debug", 0, winreg.REG_DWORD, 1 if config.debug else 0)
     except OSError as exc:
         log.warning("Could not save settings: %s", exc)
@@ -114,6 +115,10 @@ def load_settings(app_name: str, config: Config) -> None:
         color = _read_str(key, "ForegroundColor")
         if color is not None and (parsed := _str_to_color(color)) is not None:
             config.foreground_color = parsed
+
+        dynamic_color = _read_int(key, "DynamicColor")
+        if dynamic_color is not None:
+            config.dynamic_color = bool(dynamic_color)
 
         debug = _read_int(key, "Debug")
         if debug is not None:

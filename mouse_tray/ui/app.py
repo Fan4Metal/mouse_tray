@@ -16,7 +16,7 @@ import wx
 from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
-from ..config import Config, config as default_config
+from ..config import Config, charge_color, config as default_config
 from ..drivers import detect_driver
 from ..logging_setup import setup_logging
 from .icons import (
@@ -154,7 +154,8 @@ class TrayApp(wx.Frame):
             self.tray.update(self.icons.file_icon(ICON_BATTERY_100), tooltip)
             return
 
-        self.tray.update(self.icons.text_icon(str(status.percent)), tooltip)
+        color = charge_color(status.percent) if self.config.dynamic_color else None
+        self.tray.update(self.icons.text_icon(str(status.percent), color), tooltip)
 
     def _sync_mouse(self, name: str | None) -> None:
         """Load the active mouse's own full-charge date when the mouse changes."""

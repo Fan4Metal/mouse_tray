@@ -37,13 +37,17 @@ class IconRenderer:
     def __init__(self, config: Config):
         self.config = config
 
-    def text_icon(self, text: str) -> wx.Icon:
-        """Render ``text`` (e.g. a battery percent or "Zzz") as a tray icon."""
+    def text_icon(self, text: str, color: tuple[int, int, int] | None = None) -> wx.Icon:
+        """Render ``text`` (e.g. a battery percent or "Zzz") as a tray icon.
+
+        ``color`` overrides the configured foreground color when given (used for
+        the charge-level coloring of the battery percent).
+        """
         image = Image.new("RGBA", (_CANVAS, _CANVAS), self.config.background_color)
         draw = ImageDraw.Draw(image)
         position, size = _text_layout(text)
         font = ImageFont.truetype(self.config.font, size)
-        draw.text(position, text, font=font, fill=self.config.foreground_color)
+        draw.text(position, text, font=font, fill=color or self.config.foreground_color)
         icon = wx.Icon()
         icon.CopyFromBitmap(_pil_to_wx_bitmap(image))
         return icon
