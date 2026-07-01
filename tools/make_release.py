@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 ICONS = [
+    "app.ico",
     "battery_0.ico",
     "battery_50.ico",
     "battery_100.ico",
