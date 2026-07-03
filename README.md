@@ -31,6 +31,7 @@ mouse_tray/
     nordic54.py         Compx/Nordic 54L15 (HID write/read, report 8, 64-byte)
     ninjutso.py         Ninjutso Sora     (HID feature report 5)
     razer.py            Razer             (HID feature report 0, OpenRazer)
+    realtek.py          MCHOSE / RealTek  (pushed report 0x13, XOR 0xFF)
     lamzu.py            Lamzu             (HID feature report, iface 2)
     logitech.py         Logitech          (HID++ 2.0 via receiver)
     attackshark.py      Attack Shark      (pushed HID input report 3)
@@ -144,6 +145,7 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
+- **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
   Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,

@@ -32,6 +32,7 @@ mouse_tray/
     nordic54.py         Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
     ninjutso.py         Ninjutso Sora     (HID feature-отчёт 5)
     razer.py            Razer             (HID feature-отчёт 0, OpenRazer)
+    realtek.py          MCHOSE / RealTek  (push-отчёт 0x13, XOR 0xFF)
     lamzu.py            Lamzu             (HID feature-отчёт, iface 2)
     logitech.py         Logitech          (HID++ 2.0 через приёмник)
     attackshark.py      Attack Shark      (входящий HID-отчёт 3, push)
@@ -144,6 +145,7 @@ class AcmeDriver(HidDriver):
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
+- **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
   Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,

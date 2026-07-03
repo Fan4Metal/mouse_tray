@@ -27,6 +27,7 @@ _DRIVER_MODULES = [
     "nordic54",
     "ninjutso",
     "razer",
+    "realtek",
     "lamzu",
     "logitech",
     "attackshark",
