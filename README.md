@@ -27,7 +27,8 @@ mouse_tray/
     driver.py           MouseModel, MouseDriver, @register + registry
     hid.py              HidDriver — shared single-transaction hidapi base
     hidpp.py            HidppDriver — multi-step HID++ base (Logitech)
-    atk.py              ATK / VXE / VGN   (HID write/read, report 8)
+    nordic52.py         Compx/Nordic 52840 (HID write/read, report 8, 17-byte)
+    nordic54.py         Compx/Nordic 54L15 (HID write/read, report 8, 64-byte)
     ninjutso.py         Ninjutso Sora     (HID feature report 5)
     razer.py            Razer             (HID feature report 0, OpenRazer)
     lamzu.py            Lamzu             (HID feature report, iface 2)
@@ -60,15 +61,17 @@ uv run --extra build python tools/make_release.py
 **Same vendor, new model** — add a row to that driver's `models` list:
 
 ```python
-# drivers/atk.py
-_v1("VXE NewModel", 0x373B, 0x1234, 0x5678),
+# drivers/nordic52.py
+_model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
-> The ATK driver covers the shared **Compx/Nordic chipset**, not just those three
-> brands. Many off-brand mice ride the same silicon (the receiver enumerates as
-> "Compx") and work by adding a single `_v1` row with their VID/PID — no new
-> driver. The Zaopin Z2 Mini was added exactly this way; if a percent reads at
-> byte 6 of the report-8 reply, it's this protocol.
+> The `nordic52` driver covers the shared **Compx/Nordic 52840 chipset**, not just
+> ATK/VXE/VGN. Many off-brand mice ride the same silicon (the receiver enumerates
+> as "Compx") and work by adding a single `_model` row with their VID/PID — no new
+> driver. The Zaopin Z2 Mini and Scyrox V8 were added exactly this way; if a
+> percent reads at byte 6 of the report-8 reply, it's this protocol. The newer
+> Nordic 54L15 silicon (ATK Zero) speaks a different 64-byte protocol and lives in
+> `nordic54`.
 
 **New vendor** — create `drivers/<vendor>.py`, subclass `HidDriver`, list the
 models and implement `read_status()`:
@@ -140,6 +143,7 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 - **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
+- **Scyrox:** V8
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
   Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,

@@ -23,7 +23,8 @@ from .driver import (
 
 # Vendor modules to load. Order here is the detection probe order.
 _DRIVER_MODULES = [
-    "atk",
+    "nordic52",
+    "nordic54",
     "ninjutso",
     "razer",
     "lamzu",

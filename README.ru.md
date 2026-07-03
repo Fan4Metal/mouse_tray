@@ -28,7 +28,8 @@ mouse_tray/
     driver.py           MouseModel, MouseDriver, @register + реестр
     hid.py              HidDriver — общая база на одну транзакцию (hidapi)
     hidpp.py            HidppDriver — многошаговая база HID++ (Logitech)
-    atk.py              ATK / VXE / VGN   (HID write/read, отчёт 8)
+    nordic52.py         Compx/Nordic 52840 (HID write/read, отчёт 8, 17 байт)
+    nordic54.py         Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
     ninjutso.py         Ninjutso Sora     (HID feature-отчёт 5)
     razer.py            Razer             (HID feature-отчёт 0, OpenRazer)
     lamzu.py            Lamzu             (HID feature-отчёт, iface 2)
@@ -61,15 +62,16 @@ uv run --extra build python tools/make_release.py
 **Тот же вендор, новая модель** — добавьте строку в список `models` драйвера:
 
 ```python
-# drivers/atk.py
-_v1("VXE NewModel", 0x373B, 0x1234, 0x5678),
+# drivers/nordic52.py
+_model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
-> Драйвер ATK покрывает общий **чипсет Compx/Nordic**, а не только эти три
-> бренда. Многие «ноунейм»-мыши на том же кремнии (ресивер определяется как
-> «Compx») заводятся одной строкой `_v1` с их VID/PID — без нового драйвера.
-> Zaopin Z2 Mini добавлен именно так; если процент читается в байте 6 ответа на
-> отчёт 8 — это тот самый протокол.
+> Драйвер `nordic52` покрывает общий **чипсет Compx/Nordic 52840**, а не только
+> ATK/VXE/VGN. Многие «ноунейм»-мыши на том же кремнии (ресивер определяется как
+> «Compx») заводятся одной строкой `_model` с их VID/PID — без нового драйвера.
+> Zaopin Z2 Mini и Scyrox V8 добавлены именно так; если процент читается в байте
+> 6 ответа на отчёт 8 — это тот самый протокол. Более новый кремний Nordic 54L15
+> (ATK Zero) использует другой 64-байтный протокол и живёт в `nordic54`.
 
 **Новый вендор** — создайте `drivers/<vendor>.py`, унаследуйте `HidDriver`,
 перечислите модели и реализуйте `read_status()`:
@@ -141,6 +143,7 @@ class AcmeDriver(HidDriver):
 - **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
+- **Scyrox:** V8
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
   Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,
