@@ -142,7 +142,9 @@ class AcmeDriver(HidDriver):
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
 - **Ninjutso:** Sora V2
-- **Razer:** Viper V2 Pro
+- **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
+  Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,
+  Naga V2 Pro, Lancehead Wireless, Pro Click V2
 - **Lamzu:** Maya X, Inca
 - **Attack Shark:** X3
 - **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
@@ -153,6 +155,12 @@ class AcmeDriver(HidDriver):
 > Драйвер Razer портирован с реализации на `pyusb` на `hidapi` ради
 > единообразия; смещение в отчёте / HID-коллекцию может потребоваться уточнить
 > на железе (см. примечание в [`drivers/razer.py`](mouse_tray/drivers/razer.py)).
+> На реальном железе проверена только **Viper V2 Pro** — остальной список взят
+> из базы устройств [OpenRazer](https://github.com/openrazer/openrazer). Это
+> модели, у которых запрос батареи использует transaction id `0x1F` (именно он
+> зашит в драйвере), поэтому код менять не нужно; более старые семейства Razer
+> с `0x3F` / `0xFF` пока не поддержаны. Если непроверенная модель показывает
+> неверно — уточните смещение ответа / `usage_page` на железе.
 
 ## Источники протоколов и благодарности
 

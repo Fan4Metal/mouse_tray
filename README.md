@@ -141,7 +141,9 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
 - **Zaopin:** Z2 Mini
 - **Ninjutso:** Sora V2
-- **Razer:** Viper V2 Pro
+- **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
+  Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,
+  Naga V2 Pro, Lancehead Wireless, Pro Click V2
 - **Lamzu:** Maya X, Inca
 - **Attack Shark:** X3
 - **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
@@ -152,6 +154,12 @@ DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 > The Razer driver was ported from a `pyusb` implementation to `hidapi` for
 > uniformity; the report offset / HID collection may need confirmation on
 > hardware (see the note in [`drivers/razer.py`](mouse_tray/drivers/razer.py)).
+> Only **Viper V2 Pro** is verified on real hardware — the rest of the list was
+> taken from [OpenRazer](https://github.com/openrazer/openrazer)'s device
+> database. These are the models whose battery query uses transaction id `0x1F`
+> (what the driver hardcodes), so they need no code change; older Razer families
+> that use `0x3F` / `0xFF` are not covered yet. If one of the unverified models
+> reads wrong, confirm the response offset / `usage_page` on hardware.
 
 ## Protocol sources & credits
 

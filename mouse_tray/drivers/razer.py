@@ -42,9 +42,24 @@ def _battery_report() -> list[int]:
 @register
 class RazerDriver(HidDriver):
     vendor = "Razer"
+    # PID pairs come from openrazer's razermouse_driver.h. Only the models
+    # whose battery query uses transaction_id 0x1F are listed here -- that is
+    # what _battery_report() hardcodes, so these need no code changes. Older
+    # families (0x3F / 0xFF) would need a per-model transaction id first.
+    # usage_page/usage left unset: match the first reachable collection.
     models = [
-        # usage_page/usage left unset: match the first reachable collection.
         MouseModel("Razer Viper V2 Pro", 0x1532, 0x00A6, 0x00A5),
+        MouseModel("Razer Viper V3 Pro", 0x1532, 0x00C1, 0x00C0),
+        MouseModel("Razer DeathAdder V3 Pro", 0x1532, 0x00B7, 0x00B6),
+        MouseModel("Razer DeathAdder V4 Pro", 0x1532, 0x00BF, 0x00BE),
+        MouseModel("Razer Basilisk V3 Pro", 0x1532, 0x00AB, 0x00AA),
+        MouseModel("Razer Basilisk V3 Pro 35K", 0x1532, 0x00CD, 0x00CC),
+        MouseModel("Razer Basilisk Ultimate", 0x1532, 0x0088, 0x0086),
+        MouseModel("Razer Cobra Pro", 0x1532, 0x00B0, 0x00AF),
+        MouseModel("Razer Naga Pro", 0x1532, 0x0090, 0x008F),
+        MouseModel("Razer Naga V2 Pro", 0x1532, 0x00A8, 0x00A7),
+        MouseModel("Razer Lancehead Wireless", 0x1532, 0x006F, 0x0070),
+        MouseModel("Razer Pro Click V2", 0x1532, 0x00D1, 0x00D0),
     ]
 
     def read_status(self) -> BatteryStatus:
