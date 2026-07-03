@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import logging
 
-from ..battery import BatteryStatus
-from .driver import MouseModel, register
-from .hid import HidDriver
+from ...battery import BatteryStatus
+from ..driver import MouseModel, register
+from ..hid import HidDriver
 
 log = logging.getLogger(__name__)
 

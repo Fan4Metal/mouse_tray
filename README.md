@@ -27,15 +27,17 @@ mouse_tray/
     driver.py           MouseModel, MouseDriver, @register + registry
     hid.py              HidDriver — shared single-transaction hidapi base
     hidpp.py            HidppDriver — multi-step HID++ base (Logitech)
-    nordic52.py         Compx/Nordic 52840 (HID write/read, report 8, 17-byte)
-    nordic54.py         Compx/Nordic 54L15 (HID write/read, report 8, 64-byte)
-    ninjutso.py         Ninjutso Sora     (HID feature report 5)
-    razer.py            Razer             (HID feature report 0, OpenRazer)
-    realtek.py          MCHOSE / RealTek  (pushed report 0x13, XOR 0xFF)
-    lamzu.py            Lamzu             (HID feature report, iface 2)
-    logitech.py         Logitech          (HID++ 2.0 via receiver)
-    attackshark.py      Attack Shark      (pushed HID input report 3)
     __init__.py         auto-imports drivers -> registry is populated
+    chipset/            shared-silicon protocols (named by chipset)
+      nordic52.py       Compx/Nordic 52840 (HID write/read, report 8, 17-byte)
+      nordic54.py       Compx/Nordic 54L15 (HID write/read, report 8, 64-byte)
+      realtek.py        MCHOSE / RealTek  (pushed report 0x13, XOR 0xFF)
+    vendor/             brand-specific protocols
+      ninjutso.py       Ninjutso Sora     (HID feature report 5)
+      razer.py          Razer             (HID feature report 0, OpenRazer)
+      lamzu.py          Lamzu             (HID feature report, iface 2)
+      logitech.py       Logitech          (HID++ 2.0 via receiver)
+      attackshark.py    Attack Shark      (pushed HID input report 3)
   ui/
     icons.py            tray icon rendering (PIL text + .ico)
     tray.py             TaskBarIcon wrapper
@@ -62,7 +64,7 @@ uv run --extra build python tools/make_release.py
 **Same vendor, new model** — add a row to that driver's `models` list:
 
 ```python
-# drivers/nordic52.py
+# drivers/chipset/nordic52.py
 _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
@@ -74,13 +76,14 @@ _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 > Nordic 54L15 silicon (ATK Zero) speaks a different 64-byte protocol and lives in
 > `nordic54`.
 
-**New vendor** — create `drivers/<vendor>.py`, subclass `HidDriver`, list the
-models and implement `read_status()`:
+**New vendor** — create `drivers/vendor/<vendor>.py` (or `drivers/chipset/<chip>.py`
+if the silicon is shared across brands), subclass `HidDriver`, list the models and
+implement `read_status()`:
 
 ```python
-from ..battery import BatteryStatus
-from .driver import MouseModel, register
-from .hid import HidDriver
+from ...battery import BatteryStatus
+from ..driver import MouseModel, register
+from ..hid import HidDriver
 
 @register
 class AcmeDriver(HidDriver):
@@ -94,7 +97,7 @@ class AcmeDriver(HidDriver):
         return BatteryStatus(present=True, percent=res[5], charging=bool(res[6]))
 ```
 
-Then add `"acme"` to `_DRIVER_MODULES` in
+Then add `"vendor.acme"` to `_DRIVER_MODULES` in
 [`drivers/__init__.py`](mouse_tray/drivers/__init__.py). Done — detection, the
 tray UI and packaging pick it up automatically.
 

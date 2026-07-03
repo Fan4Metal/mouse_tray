@@ -4,7 +4,7 @@ Base for the common case: one request, one reply, fixed offsets -- driven over
 ``hidapi`` with either plain interrupt write/read or feature reports. Most
 vendors fit this, including Razer (whose protocol, once driven through raw
 ``pyusb`` control transfers, is really a HID SET_REPORT/GET_REPORT on feature
-report id 0 -- see ``razer.py``). A vendor driver subclasses :class:`HidDriver`
+report id 0 -- see ``vendor/razer.py``). A vendor driver subclasses :class:`HidDriver`
 and implements only :meth:`read_status`, using :meth:`_transact` to talk to the
 device: declare a model table, build a request, parse the reply.
 

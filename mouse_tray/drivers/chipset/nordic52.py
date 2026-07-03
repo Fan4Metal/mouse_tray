@@ -13,16 +13,16 @@ from wireless -- confirmed from Zaopin captures reading the percent at byte 6
 over both the 2.4G receiver (byte 7 = 0) and a direct cable (byte 7 = 1).
 
 The newer Nordic 54L15 silicon (e.g. ATK Zero) speaks a different, 64-byte
-protocol on its own HID collection -- see :mod:`~mouse_tray.drivers.nordic54`.
+protocol on its own HID collection -- see :mod:`~mouse_tray.drivers.chipset.nordic54`.
 """
 
 from __future__ import annotations
 
 import logging
 
-from ..battery import BatteryStatus
-from .driver import MouseModel, register
-from .hid import HidDriver
+from ...battery import BatteryStatus
+from ..driver import MouseModel, register
+from ..hid import HidDriver
 
 log = logging.getLogger(__name__)
 

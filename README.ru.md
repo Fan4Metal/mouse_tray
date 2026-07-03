@@ -28,15 +28,17 @@ mouse_tray/
     driver.py           MouseModel, MouseDriver, @register + реестр
     hid.py              HidDriver — общая база на одну транзакцию (hidapi)
     hidpp.py            HidppDriver — многошаговая база HID++ (Logitech)
-    nordic52.py         Compx/Nordic 52840 (HID write/read, отчёт 8, 17 байт)
-    nordic54.py         Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
-    ninjutso.py         Ninjutso Sora     (HID feature-отчёт 5)
-    razer.py            Razer             (HID feature-отчёт 0, OpenRazer)
-    realtek.py          MCHOSE / RealTek  (push-отчёт 0x13, XOR 0xFF)
-    lamzu.py            Lamzu             (HID feature-отчёт, iface 2)
-    logitech.py         Logitech          (HID++ 2.0 через приёмник)
-    attackshark.py      Attack Shark      (входящий HID-отчёт 3, push)
     __init__.py         авто-импорт драйверов -> реестр заполняется
+    chipset/            протоколы общего силикона (имя по чипсету)
+      nordic52.py       Compx/Nordic 52840 (HID write/read, отчёт 8, 17 байт)
+      nordic54.py       Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
+      realtek.py        MCHOSE / RealTek  (push-отчёт 0x13, XOR 0xFF)
+    vendor/             протоколы одного бренда
+      ninjutso.py       Ninjutso Sora     (HID feature-отчёт 5)
+      razer.py          Razer             (HID feature-отчёт 0, OpenRazer)
+      lamzu.py          Lamzu             (HID feature-отчёт, iface 2)
+      logitech.py       Logitech          (HID++ 2.0 через приёмник)
+      attackshark.py    Attack Shark      (входящий HID-отчёт 3, push)
   ui/
     icons.py            отрисовка значка трея (PIL-текст + .ico)
     tray.py             обёртка над TaskBarIcon
@@ -63,7 +65,7 @@ uv run --extra build python tools/make_release.py
 **Тот же вендор, новая модель** — добавьте строку в список `models` драйвера:
 
 ```python
-# drivers/nordic52.py
+# drivers/chipset/nordic52.py
 _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 ```
 
@@ -74,13 +76,14 @@ _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 > 6 ответа на отчёт 8 — это тот самый протокол. Более новый кремний Nordic 54L15
 > (ATK Zero) использует другой 64-байтный протокол и живёт в `nordic54`.
 
-**Новый вендор** — создайте `drivers/<vendor>.py`, унаследуйте `HidDriver`,
-перечислите модели и реализуйте `read_status()`:
+**Новый вендор** — создайте `drivers/vendor/<vendor>.py` (или
+`drivers/chipset/<chip>.py`, если силикон общий для нескольких брендов),
+унаследуйте `HidDriver`, перечислите модели и реализуйте `read_status()`:
 
 ```python
-from ..battery import BatteryStatus
-from .driver import MouseModel, register
-from .hid import HidDriver
+from ...battery import BatteryStatus
+from ..driver import MouseModel, register
+from ..hid import HidDriver
 
 @register
 class AcmeDriver(HidDriver):
@@ -94,7 +97,7 @@ class AcmeDriver(HidDriver):
         return BatteryStatus(present=True, percent=res[5], charging=bool(res[6]))
 ```
 
-Затем добавьте `"acme"` в `_DRIVER_MODULES` в файле
+Затем добавьте `"vendor.acme"` в `_DRIVER_MODULES` в файле
 [`drivers/__init__.py`](mouse_tray/drivers/__init__.py). Готово — детект, UI трея
 и сборка подхватят драйвер автоматически.
 
