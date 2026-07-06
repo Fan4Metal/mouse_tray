@@ -130,7 +130,8 @@ For the full set of fields (including those not exposed in the dialog), edit
 | `dynamic_color`    | Color the percent by charge (red/yellow/green)     |
 | `background_color` | RGBA icon background (transparent by default)      |
 | `font`             | Font file for the digits (`consola.ttf`)           |
-| `app_name`         | Tray title, notification title, registry key, logs |
+| `app_name`         | Storage key: registry subkey + log directory name  |
+| `display_name`     | Human-facing name (tray tooltip, toasts, settings) |
 | `debug`            | Verbose DEBUG logging (raw HID reports)            |
 
 ## Logging

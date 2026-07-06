@@ -52,7 +52,7 @@ class TrayApp(wx.Frame):
     """
 
     def __init__(self, config: Config):
-        super().__init__(None, title=config.app_name)
+        super().__init__(None, title=config.display_name)
         self.config = config
         self.icons = IconRenderer(config)
 
@@ -70,16 +70,16 @@ class TrayApp(wx.Frame):
             on_settings=self._open_settings,
             on_exit=self._exit,
         )
-        self.tray.update(self.icons.text_icon(" "), config.app_name)
+        self.tray.update(self.icons.text_icon(" "), config.display_name)
 
-        self.notification = NotificationMessage(title=config.app_name, message="Charged 100%")
+        self.notification = NotificationMessage(title=config.display_name, message="Charged 100%")
         self.notification.SetFlags(wx.ICON_INFORMATION)
         self.notification.UseTaskBarIcon(self.tray)
 
         # Charge animation runs on the main thread via a timer.
         self._anim_timer = wx.Timer(self)
         self._anim_index = 0
-        self._anim_tooltip = config.app_name
+        self._anim_tooltip = config.display_name
         self.Bind(wx.EVT_TIMER, self._on_anim_tick, self._anim_timer)
 
         # Polling runs on a background thread; it only ever calls back into the
