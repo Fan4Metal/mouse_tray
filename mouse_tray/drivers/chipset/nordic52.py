@@ -1,16 +1,26 @@
 """Compx mice on the Nordic 52840 MCU.
 
-Interrupt write of a 17-byte report (ID 8) then a 17-byte read. Battery percent
-is at byte 6, the wired/charging flag at byte 7. This is really the shared
-protocol of the underlying Compx/Nordic silicon (receivers enumerate as
-"Compx"), not anything brand-specific, so any same-chipset rebrand fits -- ATK,
-VXE, VGN, Zaopin, Scyrox all speak it. Adding such a mouse is just one more
-``_model`` row with its VID/PID. Reference implementation:
+This is the shared protocol of the underlying Compx/Nordic silicon, not anything
+brand-specific: receivers enumerate as "Compx" and every rebrand of the chipset
+speaks it -- ATK, VXE, VGN, Zaopin, Scyrox, Dareu... Adding such a mouse is just
+one more ``_model`` row with its VID/PID. Reference implementation:
 https://github.com/Fan4Metal/ATK_tray
 
-It reports a usable level on the cable as well, with byte 7 distinguishing wired
-from wireless -- confirmed from Zaopin captures reading the percent at byte 6
-over both the 2.4G receiver (byte 7 = 0) and a direct cable (byte 7 = 1).
+Every report -- in both directions -- is 17 bytes, numbered id ``0x08``, with the
+second byte selecting a sub-command. The battery query is sub-command ``0x04``:
+
+    write   08 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 49
+    read    08 04 00 00 00 02 23 00 0e 94 00 00 00 00 00 00 82
+            ^id ^sub          ^st ^%  ^w  ^^^^^ voltage        ^cksum
+                                 0x23 = 35%      0x0e94 = 3732 mV
+
+Battery percent sits at offset 6; offset 7 is the wired/charging flag -- ``0`` on
+the 2.4G link, ``1`` on a direct cable (confirmed from Zaopin captures reading the
+same percent at offset 6 over both). Offset 5 is a status byte and offset 8-9 the
+cell voltage in millivolts (~3.7 V here); neither is needed. The last byte is a
+checksum -- all 17 bytes sum to ``0x55`` mod 256, so the fixed request carries a
+baked-in ``0x49`` (= 73). The battery collection is usage page ``0xFF02`` (usage
+``0x02``), which pins it among the several the vendor interface splits into.
 
 The newer Nordic 54L15 silicon (e.g. ATK Zero) speaks a different, 64-byte
 protocol on its own HID collection -- see :mod:`~mouse_tray.drivers.chipset.nordic54`.
@@ -36,7 +46,7 @@ def _model(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel
 
 @register
 class Nordic52Driver(HidDriver):
-    vendor = "ATK / VXE / VGN / Zaopin / Scyrox"
+    vendor = "Compx / Nordic"
     models = [
         _model("ATK F1 Ultimate", 0x373B, 0x1031, 0x102E),
         _model("ATK A9 Ultimate", 0x373B, 0x11D9, 0x11B6),
@@ -49,6 +59,8 @@ class Nordic52Driver(HidDriver):
         _model("Zaopin Z2 Mini", 0x3554, 0xF524, 0xF526),
         # Another Compx rebrand; "SCYROX 8K Dongle" F5F7, direct cable F5F6.
         _model("Scyrox V8", 0x3554, 0xF5F7, 0xF5F6),
+        # "DAREU Receiver" dongle 0x1175, direct cable 0x1193.
+        _model("Dareu A950 Air", 0x260D, 0x1175, 0x1193),
     ]
 
     def read_status(self) -> BatteryStatus:
