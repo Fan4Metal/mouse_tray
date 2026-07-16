@@ -8,43 +8,34 @@
 
 ![Скриншот](images/screenshot.png)
 
-## Как это работает
+## Поддерживаемые модели
 
-Любая мышь, независимо от производителя, сводится к одной нормализованной
-структуре [`BatteryStatus`](mouse_tray/battery.py) — `present / percent /
-charging / full / asleep`. Единый конечный автомат в
-[`ui/app.py`](mouse_tray/ui/app.py) превращает её в значок трея (цифры, анимация
-зарядки, уведомление о полном заряде, тултип «время с последней полной
-зарядки»). Код вендора делает всего две вещи: **находит устройство** и
-**разбирает его отчёт о батарее**.
+- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
+  VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
+- **Zaopin:** Z2 Mini
+- **Scyrox:** V8
+- **Dareu:** A950 Air
+- **MCHOSE:** L7 Pro
+- **Ninjutso:** Sora V2
+- **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
+  Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,
+  Naga V2 Pro, Lancehead Wireless, Pro Click V2
+- **Lamzu:** Maya X, Inca
+- **Attack Shark:** X3
+- **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
+  через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
+  (название модели определяется автоматически по HID++) — проверено на
+  PRO X2 SUPERSTRIKE (ресивер и провод)
 
-```
-mouse_tray/
-  battery.py            BatteryStatus — универсальная модель статуса
-  config.py             настройки (интервал опроса, цвета, шрифт)
-  resources.py          пути к ресурсам, совместимые с PyInstaller
-  storage.py            дата «последней полной зарядки» (реестр Windows)
-  drivers/
-    driver.py           MouseModel, MouseDriver, @register + реестр
-    hid.py              HidDriver — общая база на одну транзакцию (hidapi)
-    hidpp.py            HidppDriver — многошаговая база HID++ (Logitech)
-    __init__.py         авто-импорт драйверов -> реестр заполняется
-    chipset/            протоколы общего силикона (имя по чипсету)
-      nordic52.py       Compx/Nordic 52840 (HID write/read, отчёт 8, 17 байт)
-      nordic54.py       Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
-      realtek.py        MCHOSE / RealTek  (push-отчёт 0x13, XOR 0xFF)
-    vendor/             протоколы одного бренда
-      ninjutso.py       Ninjutso Sora     (HID feature-отчёт 5)
-      razer.py          Razer             (HID feature-отчёт 0, OpenRazer)
-      lamzu.py          Lamzu             (HID feature-отчёт, iface 2)
-      logitech.py       Logitech          (HID++ 2.0 через приёмник)
-      attackshark.py    Attack Shark      (входящий HID-отчёт 3, push)
-  ui/
-    icons.py            отрисовка значка трея (PIL-текст + .ico)
-    tray.py             обёртка над TaskBarIcon
-    app.py              wx-приложение + единый автомат состояний
-  icons/                встроенные .ico-ресурсы
-```
+> Драйвер Razer портирован с реализации на `pyusb` на `hidapi` ради
+> единообразия; смещение в отчёте / HID-коллекцию может потребоваться уточнить
+> на железе (см. примечание в [`drivers/razer.py`](mouse_tray/drivers/razer.py)).
+> На реальном железе проверена только **Viper V2 Pro** — остальной список взят
+> из базы устройств [OpenRazer](https://github.com/openrazer/openrazer). Это
+> модели, у которых запрос батареи использует transaction id `0x1F` (именно он
+> зашит в драйвере), поэтому код менять не нужно; более старые семейства Razer
+> с `0x3F` / `0xFF` пока не поддержаны. Если непроверенная модель показывает
+> неверно — уточните смещение ответа / `usage_page` на железе.
 
 ## Запуск из исходников
 
@@ -59,6 +50,42 @@ uv run python main.py        # или:  uv run python -m mouse_tray
 uv run --extra build python tools/make_release.py
 # -> dist/mouse_tray/
 ```
+
+## Настройки
+
+Кликните по значку в трее правой кнопкой и выберите **Settings…**, чтобы из
+диалога изменить интервал опроса, шрифт, цвет шрифта, окраску по уровню заряда и
+отладочное логирование. Изменения применяются сразу и сохраняются в реестре
+(`HKCU\SOFTWARE\Mouse_Tray\Settings`), поэтому переживают перезапуск; кнопка
+**Reset to defaults** возвращает значения по умолчанию.
+
+Если включить **Color by charge level**, цифры процента заряда окрашиваются по
+уровню заряда, а не фиксированным цветом шрифта: **красный ≤ 20%**,
+**жёлтый ≤ 50%**, **зелёный > 50%**.
+
+Полный набор полей (включая те, которых нет в диалоге) — в
+[`mouse_tray/config.py`](mouse_tray/config.py):
+
+| Поле               | Значение                                                   |
+| ------------------ | ---------------------------------------------------------- |
+| `poll_rate`        | Секунды между чтениями, когда мышь активна и разряжается   |
+| `fast_poll_rate`   | Секунды между чтениями при зарядке/сне/отсутствии мыши     |
+| `foreground_color` | Цвет цифр индикатора (RGB)                                 |
+| `dynamic_color`    | Окраска процента по заряду (красный/жёлтый/зелёный)        |
+| `background_color` | Фон значка (RGBA, по умолчанию прозрачный)                 |
+| `font`             | Файл шрифта цифр (`consola.ttf`)                           |
+| `app_name`         | Ключ хранилища: подраздел реестра + папка логов            |
+| `display_name`     | Имя для пользователя (тултип трея, уведомления, настройки) |
+| `debug`            | Подробное DEBUG-логирование (сырые HID-отчёты)            |
+
+## Логирование
+
+Логи пишутся в ротируемый файл `%LOCALAPPDATA%\Mouse_Tray\app.log` (1 МБ × 3
+бэкапа), плюс в консоль, если она есть — у собранного оконного `.exe` консоли
+нет, поэтому смотреть нужно в файл. Подробный вывод DEBUG (сырые HID-отчёты)
+включается флагом `debug` в конфиге или переменной окружения
+`MOUSE_TRAY_DEBUG=1`. Настройка — в
+[`mouse_tray/logging_setup.py`](mouse_tray/logging_setup.py).
 
 ## Как добавить новую мышь
 
@@ -107,70 +134,43 @@ class AcmeDriver(HidDriver):
 > меняются. То, что два совершенно разных транспорта подключаются к единому
 > контракту `MouseDriver`, — и есть главная идея архитектуры.
 
-## Настройки
+## Как это работает
 
-Кликните по значку в трее правой кнопкой и выберите **Settings…**, чтобы из
-диалога изменить интервал опроса, шрифт, цвет шрифта, окраску по уровню заряда и
-отладочное логирование. Изменения применяются сразу и сохраняются в реестре
-(`HKCU\SOFTWARE\Mouse_Tray\Settings`), поэтому переживают перезапуск; кнопка
-**Reset to defaults** возвращает значения по умолчанию.
+Любая мышь, независимо от производителя, сводится к одной нормализованной
+структуре [`BatteryStatus`](mouse_tray/battery.py) — `present / percent /
+charging / full / asleep`. Единый конечный автомат в
+[`ui/app.py`](mouse_tray/ui/app.py) превращает её в значок трея (цифры, анимация
+зарядки, уведомление о полном заряде, тултип «время с последней полной
+зарядки»). Код вендора делает всего две вещи: **находит устройство** и
+**разбирает его отчёт о батарее**.
 
-Если включить **Color by charge level**, цифры процента заряда окрашиваются по
-уровню заряда, а не фиксированным цветом шрифта: **красный ≤ 20%**,
-**жёлтый ≤ 50%**, **зелёный > 50%**.
-
-Полный набор полей (включая те, которых нет в диалоге) — в
-[`mouse_tray/config.py`](mouse_tray/config.py):
-
-| Поле               | Значение                                                   |
-| ------------------ | ---------------------------------------------------------- |
-| `poll_rate`        | Секунды между чтениями, когда мышь активна и разряжается   |
-| `fast_poll_rate`   | Секунды между чтениями при зарядке/сне/отсутствии мыши     |
-| `foreground_color` | Цвет цифр индикатора (RGB)                                 |
-| `dynamic_color`    | Окраска процента по заряду (красный/жёлтый/зелёный)        |
-| `background_color` | Фон значка (RGBA, по умолчанию прозрачный)                 |
-| `font`             | Файл шрифта цифр (`consola.ttf`)                           |
-| `app_name`         | Ключ хранилища: подраздел реестра + папка логов            |
-| `display_name`     | Имя для пользователя (тултип трея, уведомления, настройки) |
-| `debug`            | Подробное DEBUG-логирование (сырые HID-отчёты)            |
-
-## Логирование
-
-Логи пишутся в ротируемый файл `%LOCALAPPDATA%\Mouse_Tray\app.log` (1 МБ × 3
-бэкапа), плюс в консоль, если она есть — у собранного оконного `.exe` консоли
-нет, поэтому смотреть нужно в файл. Подробный вывод DEBUG (сырые HID-отчёты)
-включается флагом `debug` в конфиге или переменной окружения
-`MOUSE_TRAY_DEBUG=1`. Настройка — в
-[`mouse_tray/logging_setup.py`](mouse_tray/logging_setup.py).
-
-## Поддерживаемые модели
-
-- **ATK / VXE / VGN:** ATK F1 Ultimate, ATK A9 Ultimate, ATK Zero, VXE MAD R,
-  VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro
-- **Zaopin:** Z2 Mini
-- **Scyrox:** V8
-- **Dareu:** A950 Air
-- **MCHOSE:** L7 Pro
-- **Ninjutso:** Sora V2
-- **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
-  Basilisk V3 Pro, Basilisk V3 Pro 35K, Basilisk Ultimate, Cobra Pro, Naga Pro,
-  Naga V2 Pro, Lancehead Wireless, Pro Click V2
-- **Lamzu:** Maya X, Inca
-- **Attack Shark:** X3
-- **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
-  через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
-  (название модели определяется автоматически по HID++) — проверено на
-  PRO X2 SUPERSTRIKE (ресивер и провод)
-
-> Драйвер Razer портирован с реализации на `pyusb` на `hidapi` ради
-> единообразия; смещение в отчёте / HID-коллекцию может потребоваться уточнить
-> на железе (см. примечание в [`drivers/razer.py`](mouse_tray/drivers/razer.py)).
-> На реальном железе проверена только **Viper V2 Pro** — остальной список взят
-> из базы устройств [OpenRazer](https://github.com/openrazer/openrazer). Это
-> модели, у которых запрос батареи использует transaction id `0x1F` (именно он
-> зашит в драйвере), поэтому код менять не нужно; более старые семейства Razer
-> с `0x3F` / `0xFF` пока не поддержаны. Если непроверенная модель показывает
-> неверно — уточните смещение ответа / `usage_page` на железе.
+```
+mouse_tray/
+  battery.py            BatteryStatus — универсальная модель статуса
+  config.py             настройки (интервал опроса, цвета, шрифт)
+  resources.py          пути к ресурсам, совместимые с PyInstaller
+  storage.py            дата «последней полной зарядки» (реестр Windows)
+  drivers/
+    driver.py           MouseModel, MouseDriver, @register + реестр
+    hid.py              HidDriver — общая база на одну транзакцию (hidapi)
+    hidpp.py            HidppDriver — многошаговая база HID++ (Logitech)
+    __init__.py         авто-импорт драйверов -> реестр заполняется
+    chipset/            протоколы общего силикона (имя по чипсету)
+      nordic52.py       Compx/Nordic 52840 (HID write/read, отчёт 8, 17 байт)
+      nordic54.py       Compx/Nordic 54L15 (HID write/read, отчёт 8, 64 байта)
+      realtek.py        MCHOSE / RealTek  (push-отчёт 0x13, XOR 0xFF)
+    vendor/             протоколы одного бренда
+      ninjutso.py       Ninjutso Sora     (HID feature-отчёт 5)
+      razer.py          Razer             (HID feature-отчёт 0, OpenRazer)
+      lamzu.py          Lamzu             (HID feature-отчёт, iface 2)
+      logitech.py       Logitech          (HID++ 2.0 через приёмник)
+      attackshark.py    Attack Shark      (входящий HID-отчёт 3, push)
+  ui/
+    icons.py            отрисовка значка трея (PIL-текст + .ico)
+    tray.py             обёртка над TaskBarIcon
+    app.py              wx-приложение + единый автомат состояний
+  icons/                встроенные .ico-ресурсы
+```
 
 ## Источники протоколов и благодарности
 
