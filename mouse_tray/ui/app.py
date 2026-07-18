@@ -16,7 +16,8 @@ import wx
 from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
-from ..config import Config, charge_color, config as default_config
+from ..build_info import commit_hash
+from ..config import VERSION, Config, charge_color, config as default_config
 from ..drivers import detect_driver
 from ..logging_setup import setup_logging
 from .icons import (
@@ -251,6 +252,9 @@ def run(config: Config | None = None) -> None:
     cfg = config or default_config
     load_settings(cfg.app_name, cfg)  # apply any persisted user settings
     setup_logging(cfg.app_name, cfg.debug)
+    commit = commit_hash()
+    version = f"{VERSION} ({commit})" if commit else VERSION
+    log.info("Starting %s %s", cfg.display_name, version)
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except (AttributeError, OSError):
