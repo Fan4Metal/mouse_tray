@@ -40,10 +40,27 @@
 
 ## Запуск из исходников
 
+Проект управляется через [uv](https://docs.astral.sh/uv/) — быстрый менеджер
+пакетов и проектов для Python: он сам создаёт виртуальное окружение и ставит
+зависимости (никаких ручных `pip install` и `venv`). Поставить один раз:
+
 ```sh
-uv sync
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# или через winget / pipx
+winget install astral-sh.uv
+```
+
+Затем из корня проекта:
+
+```sh
+uv sync                      # создаёт .venv и ставит зависимости из uv.lock
 uv run python main.py        # или:  uv run python -m mouse_tray
 ```
+
+`uv run` перед запуском сам подтягивает зависимости, так что после свежего
+клона достаточно одной команды `uv run python main.py`. Файл `uv.lock`
+фиксирует точные версии для воспроизводимой установки.
 
 ## Сборка автономного .exe
 

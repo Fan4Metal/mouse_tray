@@ -40,10 +40,26 @@ file, no changes to the UI or polling code.
 
 ## Run from source
 
+The project is managed with [uv](https://docs.astral.sh/uv/) — a fast Python
+package/project manager that handles the virtualenv and dependencies for you
+(no manual `pip install` or `venv`). Install it once:
+
 ```sh
-uv sync
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# or via winget / pipx
+winget install astral-sh.uv
+```
+
+Then, from the project root:
+
+```sh
+uv sync                      # create .venv and install dependencies from uv.lock
 uv run python main.py        # or:  uv run python -m mouse_tray
 ```
+
+`uv run` auto-syncs first, so `uv run python main.py` alone is enough after a
+fresh clone. `uv.lock` pins exact versions for reproducible installs.
 
 ## Build a standalone .exe
 
