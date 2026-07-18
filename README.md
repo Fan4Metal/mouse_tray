@@ -15,6 +15,7 @@ file, no changes to the UI or polling code.
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
 - **Dareu:** A950 Air
+- **G-Wolves:** Lycan
 - **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
@@ -99,7 +100,7 @@ _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 > The `nordic52` driver covers the shared **Compx/Nordic 52840 chipset**, not just
 > ATK/VXE/VGN. Many off-brand mice ride the same silicon (the receiver enumerates
 > as "Compx") and work by adding a single `_model` row with their VID/PID — no new
-> driver. The Zaopin Z2 Mini, Scyrox V8 and Dareu A950 Air were added exactly this
+> driver. The Zaopin Z2 Mini, Scyrox V8, Dareu A950 Air and G-Wolves Lycan were added exactly this
 > way; if a percent reads at byte 6 of the report-8 reply, it's this protocol. The newer
 > Nordic 54L15 silicon (ATK Zero) speaks a different 64-byte protocol and lives in
 > `nordic54`.

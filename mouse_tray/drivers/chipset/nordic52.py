@@ -61,6 +61,8 @@ class Nordic52Driver(HidDriver):
         _model("Scyrox V8", 0x3554, 0xF5F7, 0xF5F6),
         # "DAREU Receiver" dongle 0x1175, direct cable 0x1193.
         _model("Dareu A950 Air", 0x260D, 0x1175, 0x1193),
+        # "G-Wolves Receiver RS" dongle 0x3854, direct cable 0x4719.
+        _model("G-Wolves Lycan", 0x33E4, 0x3854, 0x4719),
     ]
 
     def read_status(self) -> BatteryStatus:

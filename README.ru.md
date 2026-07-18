@@ -15,6 +15,7 @@
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
 - **Dareu:** A950 Air
+- **G-Wolves:** Lycan
 - **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
 - **Razer:** Viper V2 Pro, Viper V3 Pro, DeathAdder V3 Pro, DeathAdder V4 Pro,
@@ -99,7 +100,7 @@ _model("VXE NewModel", 0x373B, 0x1234, 0x5678),
 > Драйвер `nordic52` покрывает общий **чипсет Compx/Nordic 52840**, а не только
 > ATK/VXE/VGN. Многие «ноунейм»-мыши на том же кремнии (ресивер определяется как
 > «Compx») заводятся одной строкой `_model` с их VID/PID — без нового драйвера.
-> Zaopin Z2 Mini, Scyrox V8 и Dareu A950 Air добавлены именно так; если процент
+> Zaopin Z2 Mini, Scyrox V8, Dareu A950 Air и G-Wolves Lycan добавлены именно так; если процент
 > читается в байте 6 ответа на отчёт 8 — это тот самый протокол. Более новый кремний Nordic 54L15
 > (ATK Zero) использует другой 64-байтный протокол и живёт в `nordic54`.
 
