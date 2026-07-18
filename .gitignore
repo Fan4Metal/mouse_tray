@@ -1,5 +1,6 @@
 # Python-generated files
 __pycache__/
+mouse_tray/_commit.py
 *.py[oc]
 build/
 dist/

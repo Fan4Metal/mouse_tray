@@ -17,6 +17,7 @@ import wx
 import wx.adv
 from PIL import ImageFont
 
+from ..build_info import commit_hash
 from ..config import VERSION, Config
 from ..resources import icon_path
 
@@ -101,7 +102,9 @@ class _FontPicker(wx.adv.OwnerDrawnComboBox):
 
 class _SettingsDialog(wx.Dialog):
     def __init__(self, parent: wx.Window, config: Config):
-        super().__init__(parent, title=f"{config.display_name} {VERSION} settings")
+        commit = commit_hash()
+        version = f"{VERSION} ({commit})" if commit else VERSION
+        super().__init__(parent, title=f"{config.display_name} {version} settings")
         self.SetIcon(wx.Icon(icon_path("app.ico")))
 
         file_map = _font_files()
