@@ -118,7 +118,7 @@ class _SettingsDialog(wx.Dialog):
             os.path.basename(path).lower(): face for face, path in self._face_to_path.items()
         }
 
-        grid = wx.FlexGridSizer(rows=5, cols=2, vgap=8, hgap=8)
+        grid = wx.FlexGridSizer(rows=6, cols=2, vgap=8, hgap=8)
         grid.AddGrowableCol(1, 1)
 
         grid.Add(wx.StaticText(self, label="Poll interval (s):"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -133,19 +133,21 @@ class _SettingsDialog(wx.Dialog):
         self._color = wx.ColourPickerCtrl(self, colour=wx.Colour(*config.foreground_color))
         grid.Add(self._color, 0)
 
-        dynamic_label = wx.StaticText(self, label="Color by charge level:")
-        grid.Add(dynamic_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._dynamic_color = wx.CheckBox(self)
-        self._dynamic_color.SetValue(config.dynamic_color)
-        dynamic_tip = "Color the battery percent by charge:\nred ≤ 20%, yellow ≤ 50%, green > 50%"
-        dynamic_label.SetToolTip(dynamic_tip)
-        self._dynamic_color.SetToolTip(dynamic_tip)
-        grid.Add(self._dynamic_color, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        grid.Add(wx.StaticText(self, label="Debug logging:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._debug = wx.CheckBox(self)
-        self._debug.SetValue(config.debug)
-        grid.Add(self._debug, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._dynamic_color = self._add_checkbox(
+            grid,
+            "Color by charge level:",
+            config.dynamic_color,
+            "Color the battery percent by charge:\nred ≤ 20%, yellow ≤ 50%, green > 50%",
+        )
+        self._battery_icon = self._add_checkbox(
+            grid,
+            "Show battery icon:",
+            config.battery_icon,
+            "Draw a battery filled to the charge level instead of\n"
+            "the percent digits. The exact number moves to the\n"
+            "tray tooltip.",
+        )
+        self._debug = self._add_checkbox(grid, "Debug logging:", config.debug)
 
         reset = wx.Button(self, label="Reset to defaults")
         reset.Bind(wx.EVT_BUTTON, self._on_reset)
@@ -169,6 +171,20 @@ class _SettingsDialog(wx.Dialog):
 
     # --- helpers ------------------------------------------------------------
 
+    def _add_checkbox(
+        self, grid: wx.FlexGridSizer, label: str, value: bool, tip: str | None = None
+    ) -> wx.CheckBox:
+        """Append a labelled checkbox row; the tooltip covers both cells."""
+        text = wx.StaticText(self, label=label)
+        box = wx.CheckBox(self)
+        box.SetValue(value)
+        if tip:
+            text.SetToolTip(tip)
+            box.SetToolTip(tip)
+        grid.Add(text, 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(box, 0, wx.ALIGN_CENTER_VERTICAL)
+        return box
+
     def _select_font(self, font: str) -> None:
         face = self._path_to_face.get(os.path.basename(font).lower())
         if face:
@@ -182,6 +198,7 @@ class _SettingsDialog(wx.Dialog):
         self._select_font(defaults.font)
         self._color.SetColour(wx.Colour(*defaults.foreground_color))
         self._dynamic_color.SetValue(defaults.dynamic_color)
+        self._battery_icon.SetValue(defaults.battery_icon)
         self._debug.SetValue(defaults.debug)
 
     def _on_ok(self, evt: wx.CommandEvent) -> None:
@@ -209,4 +226,5 @@ class _SettingsDialog(wx.Dialog):
         colour = self._color.GetColour()
         config.foreground_color = (colour.Red(), colour.Green(), colour.Blue())
         config.dynamic_color = self._dynamic_color.GetValue()
+        config.battery_icon = self._battery_icon.GetValue()
         config.debug = self._debug.GetValue()

@@ -115,8 +115,13 @@ class TrayApp(wx.Frame):
 
     # --- state machine (main thread) ---------------------------------------
 
-    def _apply_status(self, status: BatteryStatus, name: str | None) -> None:
-        """Render one status snapshot. The single point that drives the tray."""
+    def _apply_status(self, status: BatteryStatus, name: str | None) -> None:  # noqa: PLR0911
+        """Render one status snapshot. The single point that drives the tray.
+
+        The guard-clause chain is the design (see CLAUDE.md): one flat, ordered
+        list of states, each rendering and returning. Collapsing it to fit a
+        return-count limit would bury the ordering that makes it readable.
+        """
         self._sync_mouse(name)
 
         if not status.present:
@@ -125,7 +130,7 @@ class TrayApp(wx.Frame):
             self.tray.update(self.icons.text_icon("-"), _NO_MOUSE)
             return
 
-        tooltip = self._tooltip(name)
+        tooltip = self._tooltip(name, status)
 
         if status.charging:
             self._was_full = False
@@ -148,6 +153,12 @@ class TrayApp(wx.Frame):
             self.tray.update(self.icons.text_icon("Zzz"), tooltip)
             return
 
+        if status.percent is None:
+            # Present and awake but the driver could not read a level. Neither
+            # a number nor a fill height is meaningful, so say so.
+            self.tray.update(self.icons.text_icon("?"), tooltip)
+            return
+
         if status.percent == 100:
             # 100% but no "full" flag from the driver. Deliberately ignores
             # dynamic_color: green is reserved for the full state above, so
@@ -156,6 +167,10 @@ class TrayApp(wx.Frame):
             return
 
         color = charge_color(status.percent) if self.config.dynamic_color else None
+        if self.config.battery_icon:
+            # The exact number is in the tooltip built above.
+            self.tray.update(self.icons.battery_icon(status.percent, color), tooltip)
+            return
         self.tray.update(self.icons.text_icon(str(status.percent), color), tooltip)
 
     def _sync_mouse(self, name: str | None) -> None:
@@ -168,12 +183,19 @@ class TrayApp(wx.Frame):
         self.full_charge_date = load_full_charge_date(self.config.app_name, name)
         self._was_full = False  # don't carry full-state across a mouse switch
 
-    def _tooltip(self, name: str | None) -> str:
-        label = name or _NO_MOUSE
+    def _tooltip(self, name: str | None, status: BatteryStatus) -> str:
+        """Mouse name, the charge percent when known, and time since full.
+
+        The percent line is what makes ``battery_icon`` mode usable -- the tray
+        then shows a fill level and this is the only place the exact number
+        appears -- but it is cheap and consistent enough to always include.
+        """
+        lines = [name or _NO_MOUSE]
+        if status.percent is not None:
+            lines.append(f"{status.percent}%")
         if self.full_charge_date:
-            delta = datetime.now() - self.full_charge_date
-            return f"{label}\n{format_timedelta(delta)}"
-        return label
+            lines.append(format_timedelta(datetime.now() - self.full_charge_date))
+        return "\n".join(lines)
 
     # --- animation ----------------------------------------------------------
 

@@ -90,6 +90,7 @@ def save_settings(app_name: str, config: Config) -> None:
             color = _color_to_str(config.foreground_color)
             winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, color)
             winreg.SetValueEx(key, "DynamicColor", 0, winreg.REG_DWORD, 1 if config.dynamic_color else 0)
+            winreg.SetValueEx(key, "BatteryIcon", 0, winreg.REG_DWORD, 1 if config.battery_icon else 0)
             winreg.SetValueEx(key, "Debug", 0, winreg.REG_DWORD, 1 if config.debug else 0)
     except OSError as exc:
         log.warning("Could not save settings: %s", exc)
@@ -120,6 +121,10 @@ def load_settings(app_name: str, config: Config) -> None:
         dynamic_color = _read_int(key, "DynamicColor")
         if dynamic_color is not None:
             config.dynamic_color = bool(dynamic_color)
+
+        battery_icon = _read_int(key, "BatteryIcon")
+        if battery_icon is not None:
+            config.battery_icon = bool(battery_icon)
 
         debug = _read_int(key, "Debug")
         if debug is not None:

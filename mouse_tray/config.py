@@ -35,9 +35,14 @@ class Config:
                           (charging, asleep, or no mouse) where we want to
                           react quickly.
         foreground_color: RGB color of the indicator digits.
-        dynamic_color:    When True, the battery-percent digits are colored by
+        dynamic_color:    When True, the battery-percent indicator is colored by
                           charge level (green/yellow/red) instead of using
                           ``foreground_color``.
+        battery_icon:     When True, the charge level is drawn as a battery
+                          filled to that percent instead of as digits; the exact
+                          number moves to the hover tooltip. Only affects the
+                          percent readout -- "no mouse", sleep and unknown-level
+                          states stay textual.
         background_color: RGBA color of the icon background (transparent default).
         font:             Font file used for the digital indicator.
         app_name:         Storage/identity key -- the registry subkey that holds
@@ -55,6 +60,7 @@ class Config:
     fast_poll_rate: int = 1
     foreground_color: tuple[int, int, int] = BLUE
     dynamic_color: bool = False
+    battery_icon: bool = False
     background_color: tuple[int, int, int, int] = (0, 0, 0, 0)
     font: str = "consola.ttf"
     app_name: str = "Mouse_Tray"

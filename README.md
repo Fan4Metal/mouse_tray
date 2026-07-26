@@ -71,14 +71,19 @@ uv run --extra build python tools/make_release.py
 ## Settings
 
 Right-click the tray icon and choose **Settings…** to change the poll interval,
-font, font color, charge-level coloring and debug logging from a dialog. Changes
-apply immediately and are saved to the registry
+font, font color, charge-level coloring, the indicator style and debug logging
+from a dialog. Changes apply immediately and are saved to the registry
 (`HKCU\SOFTWARE\Mouse_Tray\Settings`), so they survive restarts; **Reset to
 defaults** restores the code defaults.
 
-With **Color by charge level** enabled, the battery-percent digits are colored
+With **Color by charge level** enabled, the battery-percent indicator is colored
 by charge instead of using the fixed font color: **red ≤ 20%**, **yellow ≤ 50%**,
 **green > 50%**.
+
+With **Show battery icon** enabled, the charge level is drawn as a battery
+filled to that percent instead of as digits, and the exact number moves to the
+hover tooltip (which also shows the mouse name and time since the last full
+charge). "No mouse", sleep and unknown-level states stay textual either way.
 
 For the full set of fields (including those not exposed in the dialog), edit
 [`mouse_tray/config.py`](mouse_tray/config.py):
@@ -89,6 +94,7 @@ For the full set of fields (including those not exposed in the dialog), edit
 | `fast_poll_rate`   | Seconds between reads while charging/asleep/absent |
 | `foreground_color` | RGB color of the indicator digits                  |
 | `dynamic_color`    | Color the percent by charge (red/yellow/green)     |
+| `battery_icon`     | Draw a filled battery instead of the percent digits |
 | `background_color` | RGBA icon background (transparent by default)      |
 | `font`             | Font file for the digits (`consola.ttf`)           |
 | `app_name`         | Storage key: registry subkey + log directory name  |
