@@ -25,6 +25,8 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import suppress
+from typing import ClassVar
 
 import hid
 
@@ -56,7 +58,7 @@ def _model(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel
 @register
 class RealtekDriver(HidDriver):
     vendor = "MCHOSE"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         # 2.4G dongle 0x1020, direct cable 0x00B0.
         _model("MCHOSE L7 Pro", 0x5253, 0x1020, 0x00B0),
     ]
@@ -68,10 +70,8 @@ class RealtekDriver(HidDriver):
         device = hid.device()
         try:
             device.open_path(path)
-            try:
+            with suppress(OSError):
                 device.send_feature_report(_NUDGE)  # nudge; harmless if it fails
-            except OSError:
-                pass
             device.set_nonblocking(1)
             deadline = time.monotonic() + _READ_TIMEOUT
             while time.monotonic() < deadline:
@@ -98,7 +98,5 @@ class RealtekDriver(HidDriver):
             log.warning("%s HID read failed: %s", self.name, exc)
             return BatteryStatus.absent()
         finally:
-            try:
+            with suppress(Exception):
                 device.close()
-            except Exception:
-                pass

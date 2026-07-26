@@ -15,6 +15,7 @@ Lightspeed receiver (PID 0xC54D).
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -45,7 +46,7 @@ class LogitechDriver(HidppDriver):
     # over HID++. PIDs not marked "verified" come from Solaar's receiver table
     # and are best-effort -- only HID++ 2.0 capable receivers belong here (older
     # Nano / HID++ 1.0 dongles don't expose UnifiedBattery and would never read).
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         # Lightspeed gaming receivers (incl. Powerplay mat, which is one too).
         _hidpp_device("Logitech Lightspeed", 0xC54D),  # verified
         _hidpp_device("Logitech Lightspeed", 0xC539),

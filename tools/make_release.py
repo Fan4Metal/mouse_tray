@@ -31,6 +31,7 @@ def _write_commit_module() -> Path | None:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,  # no git / not a checkout -> just skip the commit hash
         ).stdout.strip()
     except Exception:
         commit = ""
@@ -68,7 +69,7 @@ def main() -> None:
     print("Running:", " ".join(cmd))
     # Run from the project root so the relative paths above resolve, no matter
     # where the script itself was invoked from.
-    result = subprocess.run(cmd, cwd=ROOT)
+    result = subprocess.run(cmd, cwd=ROOT, check=False)  # exit code handled below
     if result.returncode != 0:
         sys.exit(result.returncode)
     print("\n=== Release created in dist/mouse_tray ===")

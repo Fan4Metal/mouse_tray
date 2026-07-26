@@ -29,6 +29,7 @@ protocol on its own HID collection -- see :mod:`~mouse_tray.drivers.chipset.nord
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -47,7 +48,7 @@ def _model(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel
 @register
 class Nordic52Driver(HidDriver):
     vendor = "Compx / Nordic"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         _model("ATK F1 Ultimate", 0x373B, 0x1031, 0x102E),
         _model("ATK A9 Ultimate", 0x373B, 0x11D9, 0x11B6),
         _model("VXE MAD R", 0x373B, 0x104D, 0x103F),

@@ -12,6 +12,7 @@ https://github.com/Sheroune/lamzu-battery-monitory
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -28,7 +29,7 @@ _BATTERY_CMD = 0x83
 @register
 class LamzuDriver(HidDriver):
     vendor = "Lamzu"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         MouseModel(
             "Lamzu Maya X",
             0x373E,

@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import suppress
+from typing import ClassVar
 
 import hid  # hidapi -- the single core transport dependency
 
@@ -51,7 +53,7 @@ _INTERFACE = 2
 @register
 class AttackSharkDriver(HidDriver):
     vendor = "Attack Shark"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         MouseModel("Attack Shark X3", 0x1D57, 0xFA60, 0xFA61, _USAGE_PAGE, _USAGE, _INTERFACE),
     ]
 
@@ -107,7 +109,5 @@ class AttackSharkDriver(HidDriver):
             log.warning("%s HID read failed: %s", self.name, exc)
             return None
         finally:
-            try:
+            with suppress(Exception):
                 device.close()
-            except Exception:
-                pass

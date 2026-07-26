@@ -28,6 +28,6 @@ class BatteryStatus:
     asleep: bool = False
 
     @classmethod
-    def absent(cls) -> "BatteryStatus":
+    def absent(cls) -> BatteryStatus:
         """No supported mouse is currently reachable."""
         return cls(present=False)

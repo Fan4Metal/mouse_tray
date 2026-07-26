@@ -17,6 +17,7 @@ that is the only vendor-specific part.
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -36,7 +37,7 @@ def _battery_report() -> list[int]:
     for byte in header[2:]:
         crc ^= byte
     payload = header + [0] * 80 + [crc, 0]
-    return [0x00] + payload  # leading 0x00 = HID feature report id
+    return [0x00, *payload]  # leading 0x00 = HID feature report id
 
 
 @register
@@ -47,7 +48,7 @@ class RazerDriver(HidDriver):
     # what _battery_report() hardcodes, so these need no code changes. Older
     # families (0x3F / 0xFF) would need a per-model transaction id first.
     # usage_page/usage left unset: match the first reachable collection.
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         MouseModel("Razer Viper V2 Pro", 0x1532, 0x00A6, 0x00A5),
         MouseModel("Razer Viper V3 Pro", 0x1532, 0x00C1, 0x00C0),
         MouseModel("Razer DeathAdder V3 Pro", 0x1532, 0x00B7, 0x00B6),

@@ -3,4 +3,4 @@
 from .config import VERSION as __version__
 from .ui import run
 
-__all__ = ["run", "__version__"]
+__all__ = ["__version__", "run"]

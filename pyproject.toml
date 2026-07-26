@@ -24,3 +24,39 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mouse_tray"]
+
+[tool.ruff]
+# The codebase reads wide on purpose (HID offset tables, log calls); 110 is the
+# widest line already in it rather than a target to grow into.
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",  # pycodestyle + pyflakes
+    "I",            # import sorting
+    "N",            # pep8-naming -- wx overrides carry an explicit noqa
+    "UP",           # pyupgrade
+    "B",            # bugbear
+    "SIM",          # flake8-simplify
+    "PL",           # pylint
+    "RUF",
+]
+ignore = [
+    # HID protocol code is literals by nature -- report ids, offsets, 0-100
+    # ranges. Hoisting each one to a named constant would hurt readability.
+    "PLR2004",
+    # Function-level imports are deliberate here: they break the ui <-> storage
+    # import cycle and keep startup cheap.
+    "PLC0415",
+    # `from .config import VERSION as __version__` is the standard re-export
+    # idiom, not a miscased constant.
+    "N811",
+]
+# Deliberately NOT selected, so the editor stops flagging intentional code:
+#   BLE, S110 -- detect()/read_status() must never raise for an absent device or
+#     an I/O hiccup (see CLAUDE.md), so broad excepts and quiet passes are the
+#     intended shape, not an oversight.
+#   DTZ -- the full-charge timestamps are local wall-clock by design: they are
+#     shown to the user and stored in the registry in a local-time format.
+#     Making them tz-aware would invalidate every already-stored value.

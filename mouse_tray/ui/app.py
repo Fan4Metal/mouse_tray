@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 import logging
 import threading
+from contextlib import suppress
 from datetime import datetime, timedelta
 
 import wx
@@ -17,7 +18,8 @@ from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
 from ..build_info import commit_hash
-from ..config import GREEN, VERSION, Config, charge_color, config as default_config
+from ..config import GREEN, VERSION, Config, charge_color
+from ..config import config as default_config
 from ..drivers import detect_driver
 from ..logging_setup import setup_logging
 from .icons import IconRenderer
@@ -253,9 +255,7 @@ def run(config: Config | None = None) -> None:
     commit = commit_hash()
     version = f"{VERSION} ({commit})" if commit else VERSION
     log.info("Starting %s %s", cfg.display_name, version)
-    try:
+    with suppress(AttributeError, OSError):  # non-Windows or older Windows
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except (AttributeError, OSError):
-        pass  # non-Windows or older Windows
     app = _App(cfg)
     app.MainLoop()

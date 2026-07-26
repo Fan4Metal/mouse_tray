@@ -13,6 +13,7 @@ https://github.com/Fan4Metal/ATK_tray
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -32,7 +33,7 @@ def _model(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel
 @register
 class Nordic54Driver(HidDriver):
     vendor = "ATK"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         _model("ATK Zero", 0x373B, 0x1155, 0x1154),
     ]
 

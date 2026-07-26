@@ -20,10 +20,15 @@ uv sync                                          # install deps into .venv
 uv run python main.py                            # run from source (or: uv run python -m mouse_tray)
 uv run --extra build python tools/make_release.py   # build dist/mouse_tray/ (.exe via PyInstaller)
 MOUSE_TRAY_DEBUG=1 uv run python main.py          # verbose logging: raw HID reports
+uvx ruff check .                                 # lint (config in pyproject.toml)
 ```
 
-There is **no test suite, linter, or formatter configured** — no pytest, ruff, or
-CI. "Testing" a driver means running against real hardware and reading
+**Ruff is configured but there is no test suite, formatter, or CI** — no pytest,
+no `ruff format`, no workflows. The lint config in `pyproject.toml` deliberately
+leaves `BLE`, `S110` and `DTZ` unselected; read the comments there before
+re-enabling them, they encode real invariants of this app.
+
+"Testing" a driver means running against real hardware and reading
 `%LOCALAPPDATA%\Mouse_Tray\app.log` (rotating, 1 MB × 3; set `debug` / the env var
 above for raw report bytes). Protocols are reverse-engineered from USB captures
 kept under `examples/`.

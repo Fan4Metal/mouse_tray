@@ -87,7 +87,8 @@ def save_settings(app_name: str, config: Config) -> None:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, _settings_path(app_name)) as key:
             winreg.SetValueEx(key, "PollRate", 0, winreg.REG_DWORD, int(config.poll_rate))
             winreg.SetValueEx(key, "Font", 0, winreg.REG_SZ, config.font)
-            winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, _color_to_str(config.foreground_color))
+            color = _color_to_str(config.foreground_color)
+            winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, color)
             winreg.SetValueEx(key, "DynamicColor", 0, winreg.REG_DWORD, 1 if config.dynamic_color else 0)
             winreg.SetValueEx(key, "Debug", 0, winreg.REG_DWORD, 1 if config.debug else 0)
     except OSError as exc:

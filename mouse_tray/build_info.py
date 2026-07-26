@@ -36,6 +36,7 @@ def commit_hash() -> str:
             capture_output=True,
             text=True,
             timeout=2,
+            check=False,  # a git failure just means "no commit info"
         )
         if result.returncode == 0:
             return result.stdout.strip()

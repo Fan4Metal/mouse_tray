@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import suppress
 
 import hid  # hidapi -- the single core transport dependency
 
@@ -34,7 +35,7 @@ class HidDriver(MouseDriver):
     """
 
     @classmethod
-    def detect(cls) -> "HidDriver | None":
+    def detect(cls) -> HidDriver | None:
         for model in cls.models:
             if hid.enumerate(model.vid, model.pid_wireless) or hid.enumerate(model.vid, model.pid_wired):
                 return cls(model)
@@ -110,7 +111,5 @@ class HidDriver(MouseDriver):
             log.warning("%s HID transaction failed: %s", self.name, exc)
             return None
         finally:
-            try:
+            with suppress(Exception):
                 device.close()
-            except Exception:
-                pass

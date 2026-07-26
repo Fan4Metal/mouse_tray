@@ -8,6 +8,7 @@ online flag (12).
 from __future__ import annotations
 
 import logging
+from typing import ClassVar
 
 from ...battery import BatteryStatus
 from ..driver import MouseModel, register
@@ -21,7 +22,7 @@ _USAGE_PAGE = 0xFFA0
 @register
 class NinjutsoDriver(HidDriver):
     vendor = "Ninjutso"
-    models = [
+    models: ClassVar[list[MouseModel]] = [
         MouseModel("Ninjutso Sora V2", 0x1915, 0xAE1C, 0xAE11, _USAGE_PAGE),
     ]
 

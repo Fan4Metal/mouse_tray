@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import ClassVar
 
 from ..battery import BatteryStatus
 
@@ -47,7 +48,7 @@ class MouseDriver(ABC):
     #: Human-readable vendor label, e.g. "ATK / VXE / VGN".
     vendor: str = ""
     #: Models this driver can talk to. Subclasses override.
-    models: list[MouseModel] = []
+    models: ClassVar[list[MouseModel]] = []
 
     def __init__(self, model: MouseModel):
         self.model = model
@@ -59,7 +60,7 @@ class MouseDriver(ABC):
 
     @classmethod
     @abstractmethod
-    def detect(cls) -> "MouseDriver | None":
+    def detect(cls) -> MouseDriver | None:
         """Return an instance bound to the first connected supported model.
 
         ``None`` when no model handled by this driver is plugged in. Must not

@@ -78,7 +78,7 @@ class HidppDriver(MouseDriver):
         return None
 
     @classmethod
-    def detect(cls) -> "HidppDriver | None":
+    def detect(cls) -> HidppDriver | None:
         for model in cls.models:
             if cls._collections(model):
                 return cls(model)
@@ -123,7 +123,7 @@ class HidppDriver(MouseDriver):
         short_h, long_h = conn
         dev = self.default_device_index if device_index is None else device_index
         address = (function_id << 4) | _SOFTWARE_ID
-        p = (list(params) + [0, 0, 0])[:3]
+        p = [*params, 0, 0, 0][:3]
         request = [_SHORT_REPORT, dev, feature_index, address, *p]
         try:
             short_h.write(request)
