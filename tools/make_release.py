@@ -13,13 +13,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PKG = ROOT / "mouse_tray"
 
-ICONS = [
-    "app.ico",
-    "battery_0.ico",
-    "battery_50.ico",
-    "battery_100.ico",
-    "battery_100_green.ico",
-]
+# Battery/state icons are generated procedurally at runtime (ui/icons.py);
+# only the window/exe icon still needs to ship as a file.
+ICONS = ["app.ico"]
 
 
 def _write_commit_module() -> Path | None:

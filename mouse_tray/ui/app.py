@@ -17,21 +17,16 @@ from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
 from ..build_info import commit_hash
-from ..config import VERSION, Config, charge_color, config as default_config
+from ..config import GREEN, VERSION, Config, charge_color, config as default_config
 from ..drivers import detect_driver
 from ..logging_setup import setup_logging
-from .icons import (
-    ICON_BATTERY_0,
-    ICON_BATTERY_50,
-    ICON_BATTERY_100,
-    ICON_BATTERY_100_GREEN,
-    IconRenderer,
-)
+from .icons import IconRenderer
 from .tray import TrayIcon
 
 log = logging.getLogger(__name__)
 
-_ANIMATION_FRAMES = (ICON_BATTERY_0, ICON_BATTERY_50, ICON_BATTERY_100)
+#: Charge levels cycled through while the mouse is charging.
+_ANIMATION_FRAMES = (0, 50, 100)
 _ANIMATION_INTERVAL_MS = 500
 _NO_MOUSE = "No Mouse Detected"
 
@@ -138,7 +133,7 @@ class TrayApp(wx.Frame):
         self._stop_animation()
 
         if status.full:
-            self.tray.update(self.icons.file_icon(ICON_BATTERY_100_GREEN), tooltip)
+            self.tray.update(self.icons.battery_icon(100, GREEN), tooltip)
             if not self._was_full:
                 self._was_full = True
                 self._record_full_charge()
@@ -152,7 +147,9 @@ class TrayApp(wx.Frame):
             return
 
         if status.percent == 100:
-            self.tray.update(self.icons.file_icon(ICON_BATTERY_100), tooltip)
+            # Deliberately not dynamic_color: green is reserved for "full", so
+            # a 100%-but-still-charging reading stays in the foreground color.
+            self.tray.update(self.icons.battery_icon(100), tooltip)
             return
 
         color = charge_color(status.percent) if self.config.dynamic_color else None
@@ -189,9 +186,9 @@ class TrayApp(wx.Frame):
             self._anim_timer.Stop()
 
     def _on_anim_tick(self, _evt: wx.TimerEvent | None = None) -> None:
-        frame = _ANIMATION_FRAMES[self._anim_index % len(_ANIMATION_FRAMES)]
+        level = _ANIMATION_FRAMES[self._anim_index % len(_ANIMATION_FRAMES)]
         self._anim_index += 1
-        self.tray.update(self.icons.file_icon(frame), self._anim_tooltip)
+        self.tray.update(self.icons.battery_icon(level), self._anim_tooltip)
 
     # --- full-charge timer --------------------------------------------------
 
