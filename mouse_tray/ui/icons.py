@@ -68,7 +68,7 @@ def _render_battery(level: int, color: tuple[int, int, int]) -> wx.Icon:
     """
     width = round(_FILL_W * max(0, min(100, level)) / 100)
     svg = _BATTERY_SVG.format(
-        color="#%02X%02X%02X" % color,
+        color="#{:02X}{:02X}{:02X}".format(*color),
         fill_x=_FILL_X,
         fill_y=_FILL_Y,
         # A zero-width rect still paints its rounded corners, so drop it.
