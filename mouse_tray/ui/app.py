@@ -147,8 +147,9 @@ class TrayApp(wx.Frame):
             return
 
         if status.percent == 100:
-            # Deliberately not dynamic_color: green is reserved for "full", so
-            # a 100%-but-still-charging reading stays in the foreground color.
+            # 100% but no "full" flag from the driver. Deliberately ignores
+            # dynamic_color: green is reserved for the full state above, so
+            # following the traffic light here would make the two identical.
             self.tray.update(self.icons.battery_icon(100), tooltip)
             return
 
