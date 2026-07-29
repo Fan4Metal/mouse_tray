@@ -77,8 +77,8 @@ from a dialog. Changes apply immediately and are saved to the registry
 defaults** restores the code defaults.
 
 With **Color by charge level** enabled, the battery-percent indicator is colored
-by charge instead of using the fixed font color: **red ≤ 20%**, **yellow ≤ 50%**,
-**green > 50%**.
+by charge: the font color above 50%, and two extra pickers appear next to it for
+the low bands — **≤ 50%** (yellow by default) and **≤ 20%** (red by default).
 
 With **Show battery icon** enabled, the charge level is drawn as a battery
 filled to that percent instead of as digits, and the exact number moves to the
@@ -92,8 +92,10 @@ For the full set of fields (including those not exposed in the dialog), edit
 | ------------------ | -------------------------------------------------- |
 | `poll_rate`        | Seconds between reads while awake & discharging    |
 | `fast_poll_rate`   | Seconds between reads while charging/asleep/absent |
-| `foreground_color` | RGB color of the indicator digits                  |
-| `dynamic_color`    | Color the percent by charge (red/yellow/green)     |
+| `foreground_color` | RGB color of the indicator digits (and the top band) |
+| `dynamic_color`    | Color the percent by charge level                  |
+| `mid_color`        | RGB color of the ≤ 50% band (yellow)               |
+| `low_color`        | RGB color of the ≤ 20% band (red)                  |
 | `battery_icon`     | Draw a filled battery instead of the percent digits |
 | `background_color` | RGBA icon background (transparent by default)      |
 | `font`             | Font file for the digits (`consola.ttf`)           |

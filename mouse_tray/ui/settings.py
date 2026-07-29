@@ -18,7 +18,7 @@ import wx.adv
 from PIL import ImageFont
 
 from ..build_info import commit_hash
-from ..config import VERSION, Config
+from ..config import LOW_THRESHOLD, MID_THRESHOLD, VERSION, Config
 from ..resources import icon_path
 
 
@@ -71,6 +71,11 @@ def _font_files() -> dict[str, str]:
                 file = value if os.path.isabs(value) else os.path.join(fonts_dir, value)
                 result.setdefault(face, file)
     return result
+
+
+def _rgb(picker: wx.ColourPickerCtrl) -> tuple[int, int, int]:
+    colour = picker.GetColour()
+    return (colour.Red(), colour.Green(), colour.Blue())
 
 
 class _FontPicker(wx.adv.OwnerDrawnComboBox):
@@ -131,14 +136,29 @@ class _SettingsDialog(wx.Dialog):
 
         grid.Add(wx.StaticText(self, label="Font color:"), 0, wx.ALIGN_CENTER_VERTICAL)
         self._color = wx.ColourPickerCtrl(self, colour=wx.Colour(*config.foreground_color))
-        grid.Add(self._color, 0)
+        self._mid_color = wx.ColourPickerCtrl(self, colour=wx.Colour(*config.mid_color))
+        self._low_color = wx.ColourPickerCtrl(self, colour=wx.Colour(*config.low_color))
+        # The low-band pickers sit next to the font color -- it is the color of
+        # the top band -- and only show up while "Color by charge level" is on.
+        colors = wx.BoxSizer(wx.HORIZONTAL)
+        colors.Add(self._color, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._band_widgets: list[wx.Window] = []
+        for threshold, picker in ((MID_THRESHOLD, self._mid_color), (LOW_THRESHOLD, self._low_color)):
+            text = wx.StaticText(self, label=f"≤ {threshold}%:")
+            colors.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 12)
+            colors.Add(picker, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 4)
+            self._band_widgets += [text, picker]
+        grid.Add(colors, 1, wx.EXPAND)
 
         self._dynamic_color = self._add_checkbox(
             grid,
             "Color by charge level:",
             config.dynamic_color,
-            "Color the battery percent by charge:\nred ≤ 20%, yellow ≤ 50%, green > 50%",
+            "Color the battery percent by charge: the font color\n"
+            f"above {MID_THRESHOLD}%, then the two colors picked next to it\n"
+            f"at ≤ {MID_THRESHOLD}% and ≤ {LOW_THRESHOLD}%.",
         )
+        self._dynamic_color.Bind(wx.EVT_CHECKBOX, self._on_dynamic_color)
         self._battery_icon = self._add_checkbox(
             grid,
             "Show battery icon:",
@@ -166,6 +186,9 @@ class _SettingsDialog(wx.Dialog):
         self.CentreOnScreen()
 
         self._select_font(config.font)
+        # Hide after fitting: the dialog keeps the width of the shown state, so
+        # toggling the checkbox never resizes the window under the cursor.
+        self._update_bands()
         # Validate the chosen font before the OK button closes the dialog.
         self.Bind(wx.EVT_BUTTON, self._on_ok, id=wx.ID_OK)
 
@@ -190,14 +213,28 @@ class _SettingsDialog(wx.Dialog):
         if face:
             self._font.SetStringSelection(face)
 
+    def _update_bands(self) -> None:
+        """Show the low-band pickers only while "Color by charge level" is on."""
+        show = self._dynamic_color.GetValue()
+        for widget in self._band_widgets:
+            widget.Show(show)
+        self.Layout()
+
     # --- events -------------------------------------------------------------
+
+    def _on_dynamic_color(self, evt: wx.CommandEvent) -> None:
+        self._update_bands()
+        evt.Skip()
 
     def _on_reset(self, _evt: wx.CommandEvent) -> None:
         defaults = Config()
         self._poll.SetValue(defaults.poll_rate)
         self._select_font(defaults.font)
         self._color.SetColour(wx.Colour(*defaults.foreground_color))
+        self._mid_color.SetColour(wx.Colour(*defaults.mid_color))
+        self._low_color.SetColour(wx.Colour(*defaults.low_color))
         self._dynamic_color.SetValue(defaults.dynamic_color)
+        self._update_bands()
         self._battery_icon.SetValue(defaults.battery_icon)
         self._debug.SetValue(defaults.debug)
 
@@ -223,8 +260,9 @@ class _SettingsDialog(wx.Dialog):
         face = self._font.GetStringSelection()
         if face:
             config.font = self._face_to_path[face]
-        colour = self._color.GetColour()
-        config.foreground_color = (colour.Red(), colour.Green(), colour.Blue())
+        config.foreground_color = _rgb(self._color)
+        config.mid_color = _rgb(self._mid_color)
+        config.low_color = _rgb(self._low_color)
         config.dynamic_color = self._dynamic_color.GetValue()
         config.battery_icon = self._battery_icon.GetValue()
         config.debug = self._debug.GetValue()

@@ -18,7 +18,7 @@ from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
 from ..build_info import commit_hash
-from ..config import GREEN, VERSION, Config, charge_color
+from ..config import GREEN, VERSION, Config
 from ..config import config as default_config
 from ..drivers import detect_driver
 from ..logging_setup import setup_logging
@@ -160,13 +160,13 @@ class TrayApp(wx.Frame):
             return
 
         if status.percent == 100:
-            # 100% but no "full" flag from the driver. Deliberately ignores
-            # dynamic_color: green is reserved for the full state above, so
-            # following the traffic light here would make the two identical.
+            # 100% but no "full" flag from the driver. The foreground color is
+            # what dynamic_color would pick for this band anyway, and green
+            # stays reserved for the full state above.
             self.tray.update(self.icons.battery_icon(100), tooltip)
             return
 
-        color = charge_color(status.percent) if self.config.dynamic_color else None
+        color = self.config.charge_color(status.percent) if self.config.dynamic_color else None
         if self.config.battery_icon:
             # The exact number is in the tooltip built above.
             self.tray.update(self.icons.battery_icon(status.percent, color), tooltip)

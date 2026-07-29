@@ -90,6 +90,8 @@ def save_settings(app_name: str, config: Config) -> None:
             color = _color_to_str(config.foreground_color)
             winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, color)
             winreg.SetValueEx(key, "DynamicColor", 0, winreg.REG_DWORD, 1 if config.dynamic_color else 0)
+            winreg.SetValueEx(key, "MidColor", 0, winreg.REG_SZ, _color_to_str(config.mid_color))
+            winreg.SetValueEx(key, "LowColor", 0, winreg.REG_SZ, _color_to_str(config.low_color))
             winreg.SetValueEx(key, "BatteryIcon", 0, winreg.REG_DWORD, 1 if config.battery_icon else 0)
             winreg.SetValueEx(key, "Debug", 0, winreg.REG_DWORD, 1 if config.debug else 0)
     except OSError as exc:
@@ -121,6 +123,14 @@ def load_settings(app_name: str, config: Config) -> None:
         dynamic_color = _read_int(key, "DynamicColor")
         if dynamic_color is not None:
             config.dynamic_color = bool(dynamic_color)
+
+        mid_color = _read_str(key, "MidColor")
+        if mid_color is not None and (parsed := _str_to_color(mid_color)) is not None:
+            config.mid_color = parsed
+
+        low_color = _read_str(key, "LowColor")
+        if low_color is not None and (parsed := _str_to_color(low_color)) is not None:
+            config.low_color = parsed
 
         battery_icon = _read_int(key, "BatteryIcon")
         if battery_icon is not None:

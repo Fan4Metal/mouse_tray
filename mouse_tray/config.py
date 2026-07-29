@@ -15,13 +15,9 @@ BLUE = (91, 184, 255)
 YELLOW = (255, 255, 0)
 
 
-def charge_color(percent: int) -> tuple[int, int, int]:
-    """Traffic-light color for a battery ``percent``: red low, yellow mid, green high."""
-    if percent <= 20:
-        return RED
-    if percent <= 50:
-        return YELLOW
-    return GREEN
+#: Charge thresholds (percent) for the two low bands of ``dynamic_color``.
+MID_THRESHOLD = 50
+LOW_THRESHOLD = 20
 
 
 @dataclass
@@ -34,10 +30,17 @@ class Config:
         fast_poll_rate:   Seconds between reads in transient states
                           (charging, asleep, or no mouse) where we want to
                           react quickly.
-        foreground_color: RGB color of the indicator digits.
+        foreground_color: RGB color of the indicator digits. Under
+                          ``dynamic_color`` it is also the color of the top
+                          charge band (above ``MID_THRESHOLD``).
         dynamic_color:    When True, the battery-percent indicator is colored by
-                          charge level (green/yellow/red) instead of using
-                          ``foreground_color``.
+                          charge level: ``low_color`` at or below
+                          ``LOW_THRESHOLD``, ``mid_color`` at or below
+                          ``MID_THRESHOLD``, ``foreground_color`` above it.
+        mid_color:        RGB color of the middle charge band under
+                          ``dynamic_color``.
+        low_color:        RGB color of the lowest charge band under
+                          ``dynamic_color``.
         battery_icon:     When True, the charge level is drawn as a battery
                           filled to that percent instead of as digits; the exact
                           number moves to the hover tooltip. Only affects the
@@ -60,12 +63,27 @@ class Config:
     fast_poll_rate: int = 1
     foreground_color: tuple[int, int, int] = BLUE
     dynamic_color: bool = False
+    mid_color: tuple[int, int, int] = YELLOW
+    low_color: tuple[int, int, int] = RED
     battery_icon: bool = False
     background_color: tuple[int, int, int, int] = (0, 0, 0, 0)
     font: str = "consola.ttf"
     app_name: str = "Mouse_Tray"
     display_name: str = "Mouse Tray"
     debug: bool = False
+
+    def charge_color(self, percent: int) -> tuple[int, int, int]:
+        """Color for a battery ``percent`` when ``dynamic_color`` is on.
+
+        The top band keeps ``foreground_color`` -- so enabling the option only
+        recolors the two low bands, and the user's chosen color still means "the
+        charge is fine".
+        """
+        if percent <= LOW_THRESHOLD:
+            return self.low_color
+        if percent <= MID_THRESHOLD:
+            return self.mid_color
+        return self.foreground_color
 
 
 # Default instance used across the app. Replace fields here to retune.
