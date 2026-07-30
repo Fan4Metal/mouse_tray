@@ -22,6 +22,7 @@ from contextlib import suppress
 
 import hid  # hidapi -- the single core transport dependency
 
+from .bus import devices_for, matching
 from .driver import MouseDriver
 
 log = logging.getLogger(__name__)
@@ -35,11 +36,8 @@ class HidDriver(MouseDriver):
     """
 
     @classmethod
-    def detect(cls) -> HidDriver | None:
-        for model in cls.models:
-            if hid.enumerate(model.vid, model.pid_wireless) or hid.enumerate(model.vid, model.pid_wired):
-                return cls(model)
-        return None
+    def detect_all(cls) -> list[HidDriver]:
+        return [cls(model) for model in cls.models if devices_for(model)]
 
     def _connected_wired(self) -> bool:
         """True when the device is reachable only on its wired PID.
@@ -50,9 +48,9 @@ class HidDriver(MouseDriver):
         this returns ``False`` -- drivers that don't care simply never call it.
         """
         model = self.model
-        if hid.enumerate(model.vid, model.pid_wireless):
+        if matching(model.vid, model.pid_wireless):
             return False
-        return bool(hid.enumerate(model.vid, model.pid_wired))
+        return bool(matching(model.vid, model.pid_wired))
 
     def _device_path(self) -> bytes | None:
         """Resolve the OS device path for the battery HID collection.
@@ -63,10 +61,7 @@ class HidDriver(MouseDriver):
         collections and the battery lives on a specific one).
         """
         model = self.model
-        devices = hid.enumerate(model.vid, model.pid_wireless) or hid.enumerate(model.vid, model.pid_wired)
-        if not devices:
-            return None
-        for device in devices:
+        for device in devices_for(model):
             if model.usage_page is not None and device["usage_page"] != model.usage_page:
                 continue
             if model.usage is not None and device["usage"] != model.usage:

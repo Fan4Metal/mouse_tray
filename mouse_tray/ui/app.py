@@ -2,7 +2,8 @@
 machine that turns any :class:`BatteryStatus` into a tray icon.
 
 All vendor differences are already gone by the time we get here -- this module
-never imports a driver, only the registry's :func:`detect_driver`.
+never imports a driver module, only the registry's :func:`detect_all_drivers`
+and the :class:`MouseDriver` contract it returns.
 """
 
 from __future__ import annotations
@@ -20,10 +21,10 @@ from ..battery import BatteryStatus
 from ..build_info import commit_hash
 from ..config import GREEN, VERSION, Config
 from ..config import config as default_config
-from ..drivers import detect_driver
+from ..drivers import MouseDriver, detect_all_drivers
 from ..logging_setup import setup_logging
 from .icons import IconRenderer
-from .tray import TrayIcon
+from .tray import MouseChoice, TrayIcon
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ log = logging.getLogger(__name__)
 _ANIMATION_FRAMES = (0, 50, 100)
 _ANIMATION_INTERVAL_MS = 500
 _NO_MOUSE = "No Mouse Detected"
+_NOT_CONNECTED = "Not connected"
 
 
 def format_timedelta(delta: timedelta) -> str:
@@ -50,6 +52,8 @@ class TrayApp(wx.Frame):
     """
 
     def __init__(self, config: Config):
+        from ..storage import load_selected_mouse
+
         super().__init__(None, title=config.display_name)
         self.config = config
         self.icons = IconRenderer(config)
@@ -59,11 +63,21 @@ class TrayApp(wx.Frame):
         # (re)loaded in _sync_mouse whenever the active mouse changes.
         self.full_charge_date: datetime | None = None
         self._current_mouse: str | None = None
-        self.driver = None
         self._was_full = False
+
+        # Which mouse the tray shows. The pin (main thread, persisted) wins; with
+        # no pin the worker picks one and sticks to it via _auto_key. _drivers
+        # belongs to the worker; _available is its read-only snapshot for the
+        # menu, rebound wholesale so the main thread always sees a consistent list.
+        self._pinned_key, self._pinned_name = load_selected_mouse(config.app_name)
+        self._drivers: dict[str, MouseDriver] = {}
+        self._available: list[tuple[str, str]] = []
+        self._auto_key: str | None = None
 
         self.tray = TrayIcon(
             on_left_click=self._wake,
+            mice_provider=self._mouse_choices,
+            on_select_mouse=self._select_mouse,
             on_reset_timer=self._reset_timer,
             on_settings=self._open_settings,
             on_exit=self._exit,
@@ -91,17 +105,7 @@ class TrayApp(wx.Frame):
 
     def _poll_loop(self) -> None:
         while not self._stop.is_set():
-            if self.driver is None:
-                self.driver = detect_driver()
-
-            if self.driver is None:
-                status, name = BatteryStatus.absent(), None
-            else:
-                status = self.driver.read_status()
-                name = self.driver.name
-                if not status.present:
-                    self.driver = None  # hot-unplug / model switch -> re-detect
-
+            status, name = self._poll_once()
             wx.CallAfter(self._apply_status, status, name)
 
             awake = status.present and not status.charging and not status.asleep
@@ -109,9 +113,91 @@ class TrayApp(wx.Frame):
             self._wakeup.wait(interval)
             self._wakeup.clear()
 
+    def _poll_once(self) -> tuple[BatteryStatus, str | None]:
+        """Refresh the device list and read the active mouse (worker thread).
+
+        Detection runs every tick -- it costs one cached bus enumeration -- so a
+        second mouse plugged in later shows up in the menu on its own.
+        """
+        self._sync_drivers()
+
+        if self._pinned_key is None:
+            return self._read_auto()
+
+        # Strict pin: when the chosen mouse is gone we report "no mouse" rather
+        # than falling back, so the tray never quietly shows a different battery.
+        driver = self._drivers.get(self._pinned_key)
+        if driver is None:
+            return BatteryStatus.absent(), self._pinned_name
+        return driver.read_status(), driver.name
+
+    def _sync_drivers(self) -> None:
+        """Re-detect, keeping the driver objects we already have.
+
+        A driver carries per-device state (HID++ caches its device index and
+        feature indices, discovered by pinging the receiver), so a fresh sweep
+        must reuse the instance already talking to a mouse instead of the
+        equivalent new one.
+        """
+        detected = detect_all_drivers()
+        known = self._drivers
+        self._drivers = {d.key: known.get(d.key, d) for d in detected}
+        self._available = [(key, driver.name) for key, driver in self._drivers.items()]
+        if self._drivers.keys() != known.keys():
+            log.info("Mice detected: %s", ", ".join(d.name for d in self._drivers.values()) or "none")
+
+    def _read_auto(self) -> tuple[BatteryStatus, str | None]:
+        """Read the first mouse that answers, preferring the last active one.
+
+        Sticky, so a working mouse keeps the tray even when another is plugged
+        in. Trying the others matters with a single mouse too: a plugged dongle
+        whose mouse is switched off detects fine but never reports present.
+        """
+        drivers = sorted(self._drivers.values(), key=lambda d: d.key != self._auto_key)
+        for driver in drivers:
+            status = driver.read_status()
+            if status.present:
+                if driver.key != self._auto_key:
+                    log.info("Active mouse: %s", driver.name)
+                self._auto_key = driver.key
+                return status, driver.name
+        self._auto_key = None
+        return BatteryStatus.absent(), None
+
     def _wake(self) -> None:
         """Trigger an immediate re-poll (e.g. tray clicked to wake a mouse)."""
         self._wakeup.set()
+
+    # --- mouse selection (main thread) --------------------------------------
+
+    def _mouse_choices(self) -> list[MouseChoice]:
+        """The tray menu's mouse list: everything detected, plus the pin.
+
+        A pinned mouse that is currently offline still gets an entry -- without
+        it there would be no way back to another mouse, or to auto, once the
+        pinned one is unplugged.
+        """
+        choices = [MouseChoice(key, name, key == self._pinned_key) for key, name in self._available]
+        if self._pinned_key is not None and not any(choice.selected for choice in choices):
+            name = self._pinned_name or "Pinned mouse"
+            choices.append(MouseChoice(self._pinned_key, f"{name} ({_NOT_CONNECTED.lower()})", True))
+        return choices
+
+    def _select_mouse(self, key: str | None) -> None:
+        """Pin the mouse to show, or ``None`` to go back to auto-select.
+
+        Only the pin is touched here; the worker notices the change at the top
+        of its next tick, which keeps the driver objects single-threaded.
+        """
+        from ..storage import save_selected_mouse
+
+        if key == self._pinned_key:
+            return
+        self._pinned_key = key
+        self._pinned_name = None if key is None else next((n for k, n in self._available if k == key), None)
+        save_selected_mouse(self.config.app_name, self._pinned_key, self._pinned_name)
+        log.info("Selected mouse: %s", self._pinned_name or "auto")
+        self._wake()
 
     # --- state machine (main thread) ---------------------------------------
 
@@ -127,7 +213,10 @@ class TrayApp(wx.Frame):
         if not status.present:
             self._stop_animation()
             self._was_full = False
-            self.tray.update(self.icons.text_icon("-"), _NO_MOUSE)
+            # A name here means a pinned mouse that is simply not connected --
+            # worth saying, since "-" alone reads as "the app found nothing".
+            tooltip = _NO_MOUSE if name is None else f"{name}\n{_NOT_CONNECTED}"
+            self.tray.update(self.icons.text_icon("-"), tooltip)
             return
 
         tooltip = self._tooltip(name, status)

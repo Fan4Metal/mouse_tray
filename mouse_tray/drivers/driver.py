@@ -58,13 +58,24 @@ class MouseDriver(ABC):
         """Display name shown in the tooltip and notifications."""
         return self.model.name
 
+    @property
+    def key(self) -> str:
+        """Stable identity of this mouse, for persisting the user's choice.
+
+        Built from the driver class and the model's VID/PID rather than from
+        :attr:`name`, which HID++ drivers only learn after their first read, or
+        from the HID path, which changes when the device is re-plugged. Two
+        physically identical mice therefore share one key and appear once.
+        """
+        return f"{type(self).__name__}/{self.model.vid:04X}/{self.model.pid_wireless:04X}"
+
     @classmethod
     @abstractmethod
-    def detect(cls) -> MouseDriver | None:
-        """Return an instance bound to the first connected supported model.
+    def detect_all(cls) -> list[MouseDriver]:
+        """Return an instance for every connected model this driver handles.
 
-        ``None`` when no model handled by this driver is plugged in. Must not
-        raise for an absent device.
+        Empty when nothing handled by this driver is plugged in. Must not raise
+        for an absent device.
         """
 
     @abstractmethod
@@ -93,19 +104,21 @@ def all_drivers() -> list[type[MouseDriver]]:
     return list(_REGISTRY)
 
 
-def detect_driver() -> MouseDriver | None:
-    """Probe every registered driver and return the first connected mouse.
+def detect_all_drivers() -> list[MouseDriver]:
+    """Every connected supported mouse, in driver registration order.
 
-    Drivers whose optional backend (e.g. pyusb) is missing are skipped with a
-    warning rather than crashing the app.
+    Deduplicated by :attr:`MouseDriver.key`: one physical device can match
+    several model rows (a chipset driver and a vendor driver may well list the
+    same VID/PID), and the driver registered first wins. A driver whose optional
+    backend is missing is skipped with a warning rather than crashing detection.
     """
+    found: dict[str, MouseDriver] = {}
     for driver_cls in _REGISTRY:
         try:
-            driver = driver_cls.detect()
+            drivers = driver_cls.detect_all()
         except Exception as exc:  # a misbehaving driver must not kill detection
             log.warning("Driver %s failed during detection: %s", driver_cls.__name__, exc)
             continue
-        if driver is not None:
-            log.info("Detected %s (%s)", driver.name, driver_cls.vendor)
-            return driver
-    return None
+        for driver in drivers:
+            found.setdefault(driver.key, driver)
+    return list(found.values())

@@ -54,7 +54,7 @@ ignore = [
     "N811",
 ]
 # Deliberately NOT selected, so the editor stops flagging intentional code:
-#   BLE, S110 -- detect()/read_status() must never raise for an absent device or
+#   BLE, S110 -- detect_all()/read_status() must never raise for an absent device or
 #     an I/O hiccup (see CLAUDE.md), so broad excepts and quiet passes are the
 #     intended shape, not an oversight.
 #   DTZ -- the full-charge timestamps are local wall-clock by design: they are

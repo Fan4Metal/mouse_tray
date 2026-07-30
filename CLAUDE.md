@@ -46,9 +46,13 @@ The layering is deliberately strict — respect it when adding code:
   The one type every driver returns and the UI consumes. `BatteryStatus.absent()`
   means "no mouse".
 - [`drivers/driver.py`](mouse_tray/drivers/driver.py) — the `MouseDriver` ABC
-  (`detect()` + `read_status()`), the `MouseModel` row (VID/PID + optional HID
-  disambiguators), and the `@register` decorator + registry (`detect_driver()`
-  probes drivers in registration order, returns the first connected one).
+  (`detect_all()` + `read_status()`, plus the stable `key` identity), the
+  `MouseModel` row (VID/PID + optional HID disambiguators), and the `@register`
+  decorator + registry (`detect_all_drivers()` probes every driver in
+  registration order and returns *all* connected mice, deduplicated by `key`).
+- [`drivers/bus.py`](mouse_tray/drivers/bus.py) — one briefly-cached snapshot of
+  `hid.enumerate`, shared by both transport bases. Detection walks every model of
+  every driver, so the bus is enumerated once per sweep instead of once per model.
 - [`drivers/hid.py`](mouse_tray/drivers/hid.py) — `HidDriver`: the common
   single-transaction base (one request → one reply, fixed offsets) over `hidapi`.
   Subclasses implement only `read_status()` and call `self._transact(...)`.
@@ -59,17 +63,26 @@ The layering is deliberately strict — respect it when adding code:
   real abstraction.
 - [`ui/app.py`](mouse_tray/ui/app.py) — the wx app, the background polling thread,
   and the single `_apply_status` state machine. This module **never imports a
-  driver**, only `detect_driver()`.
+  driver module**, only `detect_all_drivers()` and the `MouseDriver` contract.
 
-### Two things to know about the runtime
+### Three things to know about the runtime
 
 - **Threading:** polling runs on a daemon worker thread; it touches widgets only
   via `wx.CallAfter`. All wx/UI work stays on the main thread. Don't call UI code
   from `read_status()` or the poll loop.
-- **Re-detection:** when `read_status()` returns a non-present status, the poll
-  loop drops the driver and re-detects next tick — this is how hot-unplug and
-  model-switching are handled. So `detect()`/`read_status()` **must never raise**
-  for an absent device or I/O hiccup; return `None` / `BatteryStatus.absent()`.
+- **Re-detection:** every tick re-runs detection (cheap — one cached bus
+  enumeration) so a mouse plugged in later appears on its own. Driver objects are
+  reused across sweeps, keyed by `key`, because they cache per-device state.
+  `detect_all()`/`read_status()` **must never raise** for an absent device or I/O
+  hiccup; return an empty list / `BatteryStatus.absent()`.
+- **Which mouse the tray shows:** all connected mice are detected, only one is
+  read. With no pin the worker picks the first that reports `present` and sticks
+  to it (`_auto_key`) — so a plugged dongle whose mouse is off doesn't shadow a
+  working one. When the user pins a mouse from the tray menu the pin is *strict*:
+  if it is unplugged the tray shows "-", it never falls back to another mouse.
+  The pin lives in the registry (`SelectedMouse` / `SelectedMouseName`); the
+  worker owns the driver objects and only ever *reads* the pin, which keeps
+  driver state single-threaded.
 
 ## Adding mouse support
 

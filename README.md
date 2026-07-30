@@ -68,6 +68,22 @@ uv run --extra build python tools/make_release.py
 # -> dist/mouse_tray/
 ```
 
+## Multiple mice
+
+Every supported mouse that is plugged in is detected, and the tray shows one of
+them. By default that is the first one that actually answers — a receiver whose
+mouse is switched off is skipped rather than shown as "no mouse" — and it stays
+the active one until it disappears.
+
+When two or more are connected, the tray menu grows a mouse list: pick **Auto**
+for that behaviour, or pin a specific mouse. A pin is strict — if the pinned
+mouse is unplugged the tray shows `-` and names it in the tooltip, it never
+quietly switches to another mouse. The choice is saved to the registry and
+survives restarts. Only the shown mouse is polled, so the others cost nothing.
+
+The "time since last full charge" timer is kept per mouse, so switching keeps
+each one's own timer.
+
 ## Settings
 
 Right-click the tray icon and choose **Settings…** to change the poll interval,
@@ -174,9 +190,10 @@ mouse_tray/
   battery.py            BatteryStatus — the universal status model
   config.py             settings (poll rate, colors, font)
   resources.py          PyInstaller-safe resource paths
-  storage.py            "last full charge" timestamp (Windows registry)
+  storage.py            "last full charge" timestamp, settings, pinned mouse
   drivers/
     driver.py           MouseModel, MouseDriver, @register + registry
+    bus.py              one cached hid.enumerate snapshot per detection sweep
     hid.py              HidDriver — shared single-transaction hidapi base
     hidpp.py            HidppDriver — multi-step HID++ base (Logitech)
     __init__.py         auto-imports drivers -> registry is populated

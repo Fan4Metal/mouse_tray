@@ -139,3 +139,39 @@ def load_settings(app_name: str, config: Config) -> None:
         debug = _read_int(key, "Debug")
         if debug is not None:
             config.debug = bool(debug)
+
+
+# --- pinned mouse -----------------------------------------------------------
+#
+# Kept out of Config on purpose: the pin is chosen from the tray menu, not from
+# the settings dialog, so it must not ride along with save_settings.
+
+_SELECTED_KEY = "SelectedMouse"
+_SELECTED_NAME = "SelectedMouseName"
+
+
+def save_selected_mouse(app_name: str, key: str | None, name: str | None) -> None:
+    """Persist which mouse the user pinned (``None`` restores auto-select).
+
+    The display name is stored next to the key so a pinned-but-offline mouse can
+    still be named in the tooltip and in the tray menu -- the key alone
+    (``DriverClass/VID/PID``) is not something to show a user.
+    """
+    try:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, _settings_path(app_name)) as reg_key:
+            winreg.SetValueEx(reg_key, _SELECTED_KEY, 0, winreg.REG_SZ, key or "")
+            winreg.SetValueEx(reg_key, _SELECTED_NAME, 0, winreg.REG_SZ, name or "")
+    except OSError as exc:
+        log.warning("Could not save the selected mouse: %s", exc)
+
+
+def load_selected_mouse(app_name: str) -> tuple[str | None, str | None]:
+    """Read the pinned mouse as ``(key, name)``; ``(None, None)`` means auto."""
+    path = _settings_path(app_name)
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_READ) as reg_key:
+            key = _read_str(reg_key, _SELECTED_KEY)
+            name = _read_str(reg_key, _SELECTED_NAME)
+    except OSError:
+        return None, None
+    return (key or None), (name or None)

@@ -28,6 +28,7 @@ from contextlib import contextmanager
 
 import hid
 
+from .bus import enumerate_devices
 from .driver import MouseDriver, MouseModel
 
 log = logging.getLogger(__name__)
@@ -63,9 +64,7 @@ class HidppDriver(MouseDriver):
         """Return (short_path, long_path) for the HID++ collections, or None."""
         short_path = long_path = None
         pids = {model.pid_wireless, model.pid_wired}
-        devices = []
-        for pid in pids:
-            devices += hid.enumerate(model.vid, pid)
+        devices = [d for d in enumerate_devices() if d["vendor_id"] == model.vid and d["product_id"] in pids]
         for d in devices:
             if d["interface_number"] != model.interface or d["usage_page"] != model.usage_page:
                 continue
@@ -78,11 +77,8 @@ class HidppDriver(MouseDriver):
         return None
 
     @classmethod
-    def detect(cls) -> HidppDriver | None:
-        for model in cls.models:
-            if cls._collections(model):
-                return cls(model)
-        return None
+    def detect_all(cls) -> list[HidppDriver]:
+        return [cls(model) for model in cls.models if cls._collections(model)]
 
     @contextmanager
     def _connection(self):

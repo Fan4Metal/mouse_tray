@@ -7,7 +7,7 @@ spanning whatever brands rebrand it) and ``vendor/`` for brand-specific
 protocols. Adding one means dropping a module in the right subpackage and listing
 it in ``_DRIVER_MODULES`` below.
 
-Public API: :func:`detect_driver`, :func:`all_drivers`, plus the building
+Public API: :func:`detect_all_drivers`, :func:`all_drivers`, plus the building
 blocks :class:`MouseModel`, :class:`MouseDriver` and :func:`register`.
 """
 
@@ -19,7 +19,7 @@ from .driver import (
     MouseDriver,
     MouseModel,
     all_drivers,
-    detect_driver,
+    detect_all_drivers,
     register,
 )
 
@@ -42,6 +42,6 @@ __all__ = [
     "MouseDriver",
     "MouseModel",
     "all_drivers",
-    "detect_driver",
+    "detect_all_drivers",
     "register",
 ]
