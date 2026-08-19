@@ -230,3 +230,6 @@ mouse_tray/
 - **Logitech (HID++ 2.0)** — [l2-/LogitechBatteryIndicator](https://github.com/l2-/LogitechBatteryIndicator),
   детали протокола — из [Solaar](https://github.com/pwr-Solaar/Solaar) и
   [libratbag](https://github.com/libratbag/libratbag)
+- **Attack Shark** — [HarukaYamamoto0/attack-shark-x11-driver](https://github.com/HarukaYamamoto0/attack-shark-x11-driver);
+  заметки по общему протоколу сообщений присланы в
+  [issue #1](https://github.com/Fan4Metal/mouse_tray/issues/1)
