@@ -186,6 +186,81 @@ that into the tray icon (digits, charging animation, full-charge notification,
 **detect the device** and **parse its battery report**.
 
 ```
+hid.enumerate (cached 0.5 s)  →  detect_all_drivers()  →  driver.read_status()
+         bus.py                      driver.py                → BatteryStatus
+                                                                     ↓
+                                                       _apply_status() → tray icon
+```
+
+### The bus
+
+[`drivers/bus.py`](mouse_tray/drivers/bus.py) enumerates the whole HID bus once
+and caches the snapshot for 0.5 s. Detection walks every model of every driver —
+dozens of VID/PID pairs — so matching happens in memory instead of rescanning the
+bus once per model. The TTL sits well below the fastest poll rate, so a
+hot-plugged mouse still lands within one tick.
+
+### Drivers
+
+The [`MouseDriver`](mouse_tray/drivers/driver.py) contract is two methods —
+`detect_all()` and `read_status()` — plus a stable `key` (driver class + VID/PID)
+that identifies the mouse across re-plugs. Classes register themselves with the
+`@register` decorator; the module list in
+[`drivers/__init__.py`](mouse_tray/drivers/__init__.py) is both the import list
+and the detection probe order. Neither method may raise for an absent device or
+an I/O hiccup: an empty list and `BatteryStatus.absent()` are the answers there.
+
+Two transport bases sit under that contract:
+[`HidDriver`](mouse_tray/drivers/hid.py) for the common one-request/one-reply
+case (a subclass writes only `read_status()` on top of `_transact()`), and
+[`HidppDriver`](mouse_tray/drivers/hidpp.py) for multi-step HID++ 2.0 (feature
+discovery, device-index routing). The two share no code, which is precisely why
+the real abstraction is `MouseDriver` rather than either base.
+
+### Polling
+
+A daemon thread runs the poll loop. Detection re-runs on every tick — it costs
+one cached bus enumeration — so a mouse plugged in later appears on its own,
+without a restart. Driver objects are reused across sweeps, keyed by `key`,
+because they cache per-device state (an HID++ driver, for instance, discovers its
+device index and feature indices on the first read). The interval is `poll_rate`
+(60 s by default) while the mouse is awake and discharging, and `fast_poll_rate`
+(1 s) in the transient states — charging, asleep, or no mouse — where a quick
+reaction matters. The worker touches widgets only through `wx.CallAfter`, so all
+UI work stays on the main thread.
+
+### Which mouse is shown
+
+All connected mice are detected; only one is read. With no pin the worker takes
+the first that reports `present` and sticks to it, so a connected receiver whose
+mouse is switched off never shadows a working one. A pin chosen from the tray
+menu is strict — an unplugged pinned mouse yields `-` rather than a silent switch
+to another device. The pin lives in the registry and is only ever *read* by the
+worker, which keeps the driver objects single-threaded.
+
+### Rendering
+
+[`_apply_status`](mouse_tray/ui/app.py) is a flat, ordered chain of guard
+clauses, one per state: no mouse → `-`; charging → the fill animation (a
+main-thread timer); full → a green icon, a toast and a fresh full-charge
+timestamp; asleep → `Zzz`; present but with no readable level → `?`; otherwise
+the percent, as digits or as a filled battery.
+[`ui/icons.py`](mouse_tray/ui/icons.py) draws the digits with PIL and rasterizes
+the battery from an SVG template through `wx.svg` (NanoSVG, bundled with
+wxPython), both keeping a real alpha channel all the way to the icon.
+
+### Storage
+
+[`storage.py`](mouse_tray/storage.py) keeps the settings, the pinned mouse and
+the per-mouse "last full charge" timestamp under `HKCU\SOFTWARE\Mouse_Tray\`.
+That timestamp is what the tooltip's elapsed-time line is computed from.
+
+One architectural rule holds the whole thing together: `ui/app.py` never imports
+a driver module — only `detect_all_drivers()` and the `MouseDriver` contract.
+
+### Layout
+
+```
 mouse_tray/
   battery.py            BatteryStatus — the universal status model
   config.py             settings (poll rate, colors, font)
@@ -208,7 +283,7 @@ mouse_tray/
       logitech.py       Logitech          (HID++ 2.0 via receiver)
       attackshark.py    Attack Shark      (pushed HID input report 3)
   ui/
-    icons.py            tray icon rendering (PIL text + .ico)
+    icons.py            tray icon rendering (PIL digits + SVG battery)
     tray.py             TaskBarIcon wrapper
     app.py              wx app + the single state machine
   icons/                bundled .ico assets
