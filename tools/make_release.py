@@ -17,6 +17,39 @@ PKG = ROOT / "mouse_tray"
 # only the window/exe icon still needs to ship as a file.
 ICONS = ["app.ico"]
 
+# Modules nothing in the app reaches, each dragging real weight into the bundle.
+# PyInstaller pulls them in through Pillow's optional codecs and the stdlib's
+# optional imports, never through our code: the app uses PIL only for text on an
+# RGBA canvas, wx only for widgets/SVG, and it opens no socket. Verified by
+# running the whole UI -- icons, tray menu, both dialogs -- with each of these
+# blocked at import time.
+#
+# Two that look excludable but are not: `socket` (logging.handlers imports it
+# for SocketHandler) and `zlib` (PyInstaller's own archive).
+EXCLUDES = [
+    "PIL._avif",  # ~7.6 MB of AVIF codec
+    "PIL._webp",
+    "PIL._imagingcms",
+    "PIL._imagingtk",
+    "PIL._imagingmath",
+    "wx.html",  # the module plus its own wxWidgets DLL, ~1.3 MB
+    "ssl",  # with _ssl/_hashlib go libcrypto + libssl, ~9.5 MB
+    "_ssl",
+    "_hashlib",
+    "unicodedata",
+    "decimal",
+    "_decimal",
+    "pyexpat",
+    "_elementtree",
+    "xml",
+    "lzma",
+    "_lzma",
+    "bz2",
+    "_bz2",
+    "_zstd",  # base_library.zip is stored uncompressed, so no codec is needed
+    "tkinter",
+]
+
 
 def _write_commit_module() -> Path | None:
     """Bake the current git commit into mouse_tray/_commit.py for the exe.
@@ -57,6 +90,8 @@ def main() -> None:
         # Collect the whole subpackage; new drivers are then included for free.
         "--collect-submodules", "mouse_tray.drivers",
     ]
+    for module in EXCLUDES:
+        cmd += ["--exclude-module", module]
     # The baked-in commit hash is imported lazily, so PyInstaller can't see it.
     if commit_module is not None:
         cmd += ["--hidden-import", "mouse_tray._commit"]

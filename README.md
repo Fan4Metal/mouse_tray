@@ -68,6 +68,13 @@ uv run --extra build python tools/make_release.py
 # -> dist/mouse_tray/
 ```
 
+The resulting folder is about 37 MB. Drivers are collected as a whole
+(`--collect-submodules`), so a new driver ships without touching the script.
+Modules the app cannot reach — Pillow's codecs, `ssl` with its libcrypto/libssl,
+`wx.html` and the like — are dropped through the `EXCLUDES` list in
+[`tools/make_release.py`](tools/make_release.py), which also records what must
+stay. A new dependency is reason to revisit that list.
+
 ## Multiple mice
 
 Every supported mouse that is plugged in is detected, and the tray shows one of
