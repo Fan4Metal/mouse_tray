@@ -6,6 +6,7 @@ Two sources, in order:
   * ``git rev-parse`` in the source checkout during development.
 
 Returns ``""`` when neither is available, so callers can hide it.
+:func:`version_string` wraps that into the label every dialog shows.
 """
 
 from __future__ import annotations
@@ -13,6 +14,14 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+
+
+def version_string() -> str:
+    """The user-facing version: ``"0.1.0 (abc1234)"``, or just ``"0.1.0"``."""
+    from .config import VERSION
+
+    commit = commit_hash()
+    return f"{VERSION} ({commit})" if commit else VERSION
 
 
 def commit_hash() -> str:

@@ -18,8 +18,8 @@ import wx
 from wx.adv import NotificationMessage
 
 from ..battery import BatteryStatus
-from ..build_info import commit_hash
-from ..config import GREEN, VERSION, Config
+from ..build_info import version_string
+from ..config import GREEN, Config
 from ..config import config as default_config
 from ..drivers import MouseDriver, detect_all_drivers
 from ..logging_setup import setup_logging
@@ -80,6 +80,7 @@ class TrayApp(wx.Frame):
             on_select_mouse=self._select_mouse,
             on_reset_timer=self._reset_timer,
             on_settings=self._open_settings,
+            on_about=self._open_about,
             on_exit=self._exit,
         )
         self.tray.update(self.icons.text_icon(" "), config.display_name)
@@ -334,6 +335,11 @@ class TrayApp(wx.Frame):
         setup_logging(self.config.app_name, self.config.debug)
         self._wake()  # force an immediate re-poll so the icon repaints
 
+    def _open_about(self) -> None:
+        from .about import open_about
+
+        open_about(self, self.config)
+
     # --- lifecycle ----------------------------------------------------------
 
     def _exit(self) -> None:
@@ -363,9 +369,7 @@ def run(config: Config | None = None) -> None:
     cfg = config or default_config
     load_settings(cfg.app_name, cfg)  # apply any persisted user settings
     setup_logging(cfg.app_name, cfg.debug)
-    commit = commit_hash()
-    version = f"{VERSION} ({commit})" if commit else VERSION
-    log.info("Starting %s %s", cfg.display_name, version)
+    log.info("Starting %s %s", cfg.display_name, version_string())
     with suppress(AttributeError, OSError):  # non-Windows or older Windows
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     app = _App(cfg)

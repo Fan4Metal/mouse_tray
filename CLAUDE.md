@@ -61,6 +61,10 @@ The layering is deliberately strict — respect it when adding code:
   report formats). Subclasses `MouseDriver` **directly**, sharing none of the
   single-transaction model — the proof that `MouseDriver`, not `HidDriver`, is the
   real abstraction.
+- [`ui/about.py`](mouse_tray/ui/about.py) — the About dialog. Its supported-mouse
+  table is generated from `all_drivers()`, so a new driver appears there for
+  free; the optional `MouseDriver.note` is the one place a driver may add prose
+  about its own model list, keeping vendor knowledge out of the UI.
 - [`ui/app.py`](mouse_tray/ui/app.py) — the wx app, the background polling thread,
   and the single `_apply_status` state machine. This module **never imports a
   driver module**, only `detect_all_drivers()` and the `MouseDriver` contract.

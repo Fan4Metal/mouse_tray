@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-#: Application version, shown in the settings dialog title. Single source for the
-#: runtime version (re-exported as ``mouse_tray.__version__``).
+#: Application version, shown in the settings and about dialogs. Single source
+#: for the runtime version (re-exported as ``mouse_tray.__version__``).
 VERSION = "0.1.0"
+
+#: Project identity, shown in the about dialog. Kept here with VERSION so the
+#: dialog has a single source for everything it prints about the app itself.
+DESCRIPTION = "Universal wireless-mouse battery indicator for the Windows system tray."
+HOMEPAGE = "https://github.com/Fan4Metal/mouse_tray"
 
 # Colors (RGB)
 RED = (255, 0, 0)

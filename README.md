@@ -119,6 +119,16 @@ For the full set of fields (including those not exposed in the dialog), edit
 | `display_name`     | Human-facing name (tray tooltip, toasts, settings) |
 | `debug`            | Verbose DEBUG logging (raw HID reports)            |
 
+## About
+
+**About…** in the tray menu opens a dialog with the version and build commit, a
+link to the project page, and the table of every device the running build
+supports — model, USB id (`VID:PID`, plus the wired PID when the cable
+enumerates its own) and the protocol behind it, sortable by any column header.
+The table is generated from the driver registry, so it always matches the
+drivers actually bundled — a build with a new driver lists its models without
+any edit here.
+
 ## Logging
 
 Logs go to a rotating file at `%LOCALAPPDATA%\Mouse_Tray\app.log` (1 MB × 3
@@ -285,6 +295,8 @@ mouse_tray/
   ui/
     icons.py            tray icon rendering (PIL digits + SVG battery)
     tray.py             TaskBarIcon wrapper
+    settings.py         settings dialog
+    about.py            about dialog (model table from the registry)
     app.py              wx app + the single state machine
   icons/                bundled .ico assets
 ```

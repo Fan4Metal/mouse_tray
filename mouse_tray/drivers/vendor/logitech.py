@@ -42,6 +42,10 @@ def _hidpp_device(name: str, pid: int) -> MouseModel:
 @register
 class LogitechDriver(HidppDriver):
     vendor = "Logitech"
+    note = (
+        "Logitech entries name the receiver (or the directly connected mouse); "
+        "the mouse model itself is read over HID++ at runtime."
+    )
     # One entry per PID, mostly receivers; the actual mouse name is resolved
     # over HID++. PIDs not marked "verified" come from Solaar's receiver table
     # and are best-effort -- only HID++ 2.0 capable receivers belong here (older

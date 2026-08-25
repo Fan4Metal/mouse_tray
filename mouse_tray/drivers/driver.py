@@ -47,6 +47,9 @@ class MouseDriver(ABC):
 
     #: Human-readable vendor label, e.g. "ATK / VXE / VGN".
     vendor: str = ""
+    #: Optional caveat about this driver's model list, shown under the about
+    #: dialog's table. Lives here so the UI needs no vendor knowledge of its own.
+    note: str = ""
     #: Models this driver can talk to. Subclasses override.
     models: ClassVar[list[MouseModel]] = []
 
