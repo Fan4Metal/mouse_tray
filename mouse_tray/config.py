@@ -13,6 +13,10 @@ VERSION = "0.1.0"
 DESCRIPTION = "Universal wireless-mouse battery indicator for the Windows system tray."
 HOMEPAGE = "https://github.com/Fan4Metal/mouse_tray"
 
+#: Author, stamped into the exe's version resource (CompanyName and
+#: LegalCopyright) by tools/make_release.py.
+AUTHOR = "Fan4_Metal"
+
 # Colors (RGB)
 RED = (255, 0, 0)
 GREEN = (71, 255, 12)

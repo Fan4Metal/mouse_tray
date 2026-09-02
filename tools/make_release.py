@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tempfile
+from datetime import date
 from pathlib import Path
 
 # Project root is the parent of this script's "tools" directory.
@@ -51,6 +53,62 @@ EXCLUDES = [
 ]
 
 
+#: Windows version resource. Without one the shell has no name for the process,
+#: so tray notifications and Task Manager both fall back to "mouse_tray.exe";
+#: FileDescription is the string they show instead. Filled from config so the
+#: exe never disagrees with the app about its own name and version.
+VERSION_INFO = """VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers={nums}, prodvers={nums}, mask=0x3f, flags=0x0,
+    OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0),
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        "040904B0",  # US English, Unicode
+        [
+          StringStruct("CompanyName", "{author}"),
+          StringStruct("FileDescription", "{name}"),
+          StringStruct("FileVersion", "{version}"),
+          StringStruct("InternalName", "mouse_tray"),
+          StringStruct("LegalCopyright", "(c) {year} {author}"),
+          StringStruct("OriginalFilename", "mouse_tray.exe"),
+          StringStruct("ProductName", "{name}"),
+          StringStruct("ProductVersion", "{version}"),
+        ],
+      )
+    ]),
+    VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+  ],
+)
+"""
+
+
+def _write_version_file(directory: Path) -> Path:
+    """Write the version resource PyInstaller stamps into the exe.
+
+    Not into ``build/``: that is PyInstaller's workpath and ``--clean`` empties
+    it before the build reads anything.
+    """
+    sys.path.insert(0, str(ROOT))
+    from mouse_tray.config import AUTHOR, VERSION, config
+
+    numbers = [int(part) for part in VERSION.split(".") if part.isdigit()]
+    numbers = [*numbers, 0, 0, 0, 0][:4]
+    path = directory / "version_info.txt"
+    path.write_text(
+        VERSION_INFO.format(
+            nums=tuple(numbers),
+            name=config.display_name,
+            version=VERSION,
+            author=AUTHOR,
+            year=date.today().year,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _write_commit_module() -> Path | None:
     """Bake the current git commit into mouse_tray/_commit.py for the exe.
 
@@ -75,8 +133,8 @@ def _write_commit_module() -> Path | None:
     return path
 
 
-def main() -> None:
-    commit_module = _write_commit_module()
+def _command(commit_module: Path | None, version_file: Path) -> list[str]:
+    """Assemble the PyInstaller command line."""
     cmd = [
         "uv", "run", "--extra", "build", "pyinstaller",
         "--clean",
@@ -85,6 +143,7 @@ def main() -> None:
         "--onedir",
         "--icon", "mouse_tray/icons/app.ico",
         "--name", "mouse_tray",
+        "--version-file", str(version_file),
         # Driver modules are imported dynamically (importlib) in
         # drivers/__init__.py, so PyInstaller can't see them statically.
         # Collect the whole subpackage; new drivers are then included for free.
@@ -100,11 +159,17 @@ def main() -> None:
         # resolves to "<_MEIPASS>/icons/<name>" at runtime.
         cmd += ["--add-data", f"mouse_tray/icons/{icon};icons"]
     cmd.append("main.py")
+    return cmd
 
-    print("Running:", " ".join(cmd))
-    # Run from the project root so the relative paths above resolve, no matter
-    # where the script itself was invoked from.
-    result = subprocess.run(cmd, cwd=ROOT, check=False)  # exit code handled below
+
+def main() -> None:
+    commit_module = _write_commit_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        cmd = _command(commit_module, _write_version_file(Path(tmp)))
+        print("Running:", " ".join(cmd))
+        # Run from the project root so the relative paths above resolve, no
+        # matter where the script itself was invoked from.
+        result = subprocess.run(cmd, cwd=ROOT, check=False)  # exit code handled below
     if result.returncode != 0:
         sys.exit(result.returncode)
     print("\n=== Release created in dist/mouse_tray ===")
