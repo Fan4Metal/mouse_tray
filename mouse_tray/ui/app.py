@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ctypes
 import logging
+import sys
 import threading
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -21,6 +22,7 @@ from ..battery import BatteryStatus
 from ..build_info import version_string
 from ..config import GREEN, Config
 from ..config import config as default_config
+from ..diagnostics import log_startup_diagnostics
 from ..drivers import MouseDriver, detect_all_drivers
 from ..logging_setup import setup_logging
 from .icons import IconRenderer
@@ -369,7 +371,8 @@ def run(config: Config | None = None) -> None:
     cfg = config or default_config
     load_settings(cfg.app_name, cfg)  # apply any persisted user settings
     setup_logging(cfg.app_name, cfg.debug)
-    log.info("Starting %s %s", cfg.display_name, version_string())
+    log.info("Starting %s %s from %s", cfg.display_name, version_string(), sys.executable)
+    log_startup_diagnostics()
     with suppress(AttributeError, OSError):  # non-Windows or older Windows
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     app = _App(cfg)
