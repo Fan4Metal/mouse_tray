@@ -56,6 +56,7 @@ class Nordic52Driver(HidDriver):
         _model("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
         _model("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
         _model("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
+        _model("VGN F2 Pro Max", 0x3554, 0xFB3E, 0xFB3D),
         # Compx rebrand on the same silicon; receiver F524, direct cable F526.
         _model("Zaopin Z2 Mini", 0x3554, 0xF524, 0xF526),
         # Another Compx rebrand; "SCYROX 8K Dongle" F5F7, direct cable F5F6.
