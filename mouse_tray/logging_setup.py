@@ -16,18 +16,35 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from contextlib import suppress
 from logging.handlers import RotatingFileHandler
 
 _FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 _MAX_BYTES = 1_000_000
 _BACKUP_COUNT = 3
 _DEBUG_ENV = "MOUSE_TRAY_DEBUG"
+_LOG_FILE = "app.log"
 
 
 def log_dir(app_name: str) -> str:
     """Per-user data directory for logs (``%LOCALAPPDATA%\\<app_name>``)."""
     base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
     return os.path.join(base, app_name)
+
+
+def log_path(app_name: str) -> str:
+    """The current log file (older rotations sit next to it as ``app.log.1``...)."""
+    return os.path.join(log_dir(app_name), _LOG_FILE)
+
+
+def open_log(app_name: str) -> None:
+    """Open the log file in whatever the user reads text with; fall back to
+    the log folder if the file is missing or has no associated program."""
+    try:
+        os.startfile(log_path(app_name))
+    except (AttributeError, OSError):  # non-Windows, no file, no association
+        with suppress(AttributeError, OSError):
+            os.startfile(log_dir(app_name))
 
 
 def _debug_enabled(debug: bool) -> bool:
@@ -60,20 +77,19 @@ def setup_logging(app_name: str, debug: bool = False) -> str | None:
         root.addHandler(console)
 
     # Rotating file handler -- best effort; never let logging setup crash the app.
-    log_path: str | None = None
+    path: str | None = None
     try:
-        directory = log_dir(app_name)
-        os.makedirs(directory, exist_ok=True)
-        log_path = os.path.join(directory, "app.log")
+        os.makedirs(log_dir(app_name), exist_ok=True)
+        path = log_path(app_name)
         file_handler = RotatingFileHandler(
-            log_path, maxBytes=_MAX_BYTES, backupCount=_BACKUP_COUNT,
+            path, maxBytes=_MAX_BYTES, backupCount=_BACKUP_COUNT,
             encoding="utf-8", delay=True,
         )
         file_handler.setFormatter(formatter)
         root.addHandler(file_handler)
     except OSError:
-        log_path = None
+        path = None
 
-    if log_path:
-        logging.getLogger(__name__).info("Logging to %s (level=%s)", log_path, logging.getLevelName(level))
-    return log_path
+    if path:
+        logging.getLogger(__name__).info("Logging to %s (level=%s)", path, logging.getLevelName(level))
+    return path

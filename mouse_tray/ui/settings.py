@@ -19,6 +19,7 @@ from PIL import ImageFont
 
 from ..build_info import version_string
 from ..config import LOW_THRESHOLD, MID_THRESHOLD, Config
+from ..logging_setup import open_log
 from ..resources import icon_path
 
 
@@ -169,10 +170,14 @@ class _SettingsDialog(wx.Dialog):
 
         reset = wx.Button(self, label="Reset to defaults")
         reset.Bind(wx.EVT_BUTTON, self._on_reset)
+        show_log = wx.Button(self, label="Open log")
+        show_log.SetToolTip("Open app.log -- attach it when reporting a problem.")
+        show_log.Bind(wx.EVT_BUTTON, lambda _evt: open_log(config.app_name))
         buttons = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
 
         bottom = wx.BoxSizer(wx.HORIZONTAL)
         bottom.Add(reset, 0)
+        bottom.Add(show_log, 0, wx.LEFT, 8)
         bottom.AddStretchSpacer()
         bottom.Add(buttons, 0)
 

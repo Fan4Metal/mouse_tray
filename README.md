@@ -140,7 +140,8 @@ any edit here.
 
 Logs go to a rotating file at `%LOCALAPPDATA%\Mouse_Tray\app.log` (1 MB × 3
 backups), plus the console when one is available — under the windowed `.exe`
-build there is no console, so the file is the place to look. Enable verbose
+build there is no console, so the file is the place to look. The **Open log**
+button in the settings dialog opens it. Enable verbose
 DEBUG output (raw HID reports) with the `debug` config flag or by setting the
 `MOUSE_TRAY_DEBUG=1` environment variable. Configured in
 [`mouse_tray/logging_setup.py`](mouse_tray/logging_setup.py).
