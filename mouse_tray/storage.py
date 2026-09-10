@@ -11,7 +11,7 @@ import logging
 import winreg
 from datetime import datetime
 
-from .config import Config
+from .config import TEXT_SIZE_DEFAULT, TEXT_SIZE_MAX, TEXT_SIZE_MIN, Config
 
 _DATE_FORMAT = "%d.%m.%Y %H:%M:%S"
 
@@ -50,7 +50,7 @@ def load_full_charge_date(app_name: str, mouse: str) -> datetime | None:
         return None
 
 
-# --- user settings (poll rate, font, color, debug) -------------------------
+# --- user settings (poll rate, font, size, color, debug) ------------------
 
 
 def _color_to_str(color: tuple[int, int, int]) -> str:
@@ -82,11 +82,12 @@ def _read_str(key: winreg.HKEYType, name: str) -> str | None:
 
 
 def save_settings(app_name: str, config: Config) -> None:
-    """Persist the user-tunable settings (poll rate, font, color, debug)."""
+    """Persist the user-tunable settings (poll rate, font, size, color, debug)."""
     try:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, _settings_path(app_name)) as key:
             winreg.SetValueEx(key, "PollRate", 0, winreg.REG_DWORD, int(config.poll_rate))
             winreg.SetValueEx(key, "Font", 0, winreg.REG_SZ, config.font)
+            winreg.SetValueEx(key, "TextSizePct", 0, winreg.REG_DWORD, int(config.text_size))
             color = _color_to_str(config.foreground_color)
             winreg.SetValueEx(key, "ForegroundColor", 0, winreg.REG_SZ, color)
             winreg.SetValueEx(key, "DynamicColor", 0, winreg.REG_DWORD, 1 if config.dynamic_color else 0)
@@ -115,6 +116,17 @@ def load_settings(app_name: str, config: Config) -> None:
         font = _read_str(key, "Font")
         if font:
             config.font = font
+
+        text_size = _read_int(key, "TextSizePct")
+        if text_size is None:
+            # Legacy 50-100 scale (100 was the fitted max): halve onto the
+            # 25-100 scale where the fit sits at TEXT_SIZE_DEFAULT. The old
+            # value stays orphaned in the registry; harmless, one DWORD.
+            legacy = _read_int(key, "TextSize")
+            if legacy is not None:
+                text_size = round(legacy * TEXT_SIZE_DEFAULT / 100)
+        if text_size is not None and TEXT_SIZE_MIN <= text_size <= TEXT_SIZE_MAX:
+            config.text_size = text_size
 
         color = _read_str(key, "ForegroundColor")
         if color is not None and (parsed := _str_to_color(color)) is not None:

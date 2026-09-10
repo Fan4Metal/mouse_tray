@@ -28,6 +28,12 @@ YELLOW = (255, 255, 0)
 MID_THRESHOLD = 50
 LOW_THRESHOLD = 20
 
+#: Text size slider range, in percent: TEXT_SIZE_DEFAULT fills the icon and
+#: is the default; lower values shrink, higher ones grow past the fit.
+TEXT_SIZE_MIN = 25
+TEXT_SIZE_DEFAULT = 50
+TEXT_SIZE_MAX = 100
+
 
 @dataclass
 class Config:
@@ -57,6 +63,11 @@ class Config:
                           states stay textual.
         background_color: RGBA color of the icon background (transparent default).
         font:             Font file used for the digital indicator.
+        text_size:        Tray digit size, ``TEXT_SIZE_MIN``-``TEXT_SIZE_MAX``.
+                          ``TEXT_SIZE_DEFAULT`` (50) renders the fitted maximum;
+                          lower values shrink every string proportionally,
+                          higher values grow past the fit (wide strings then
+                          overflow, by explicit user choice).
         app_name:         Storage/identity key -- the registry subkey that holds
                           settings and "last full charge" times, and the log
                           directory name. Kept underscore-form so those paths
@@ -77,6 +88,7 @@ class Config:
     battery_icon: bool = False
     background_color: tuple[int, int, int, int] = (0, 0, 0, 0)
     font: str = "consola.ttf"
+    text_size: int = TEXT_SIZE_DEFAULT
     app_name: str = "Mouse_Tray"
     display_name: str = "Mouse Tray"
     debug: bool = False
