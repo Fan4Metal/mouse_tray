@@ -23,6 +23,7 @@ file, no changes to the UI or polling code.
   Naga V2 Pro, Lancehead Wireless, Pro Click V2
 - **Lamzu:** Maya X, Inca
 - **Attack Shark:** X3
+- **A4Tech Bloody:** SG5 Pro (8K dongle)
 - **Logitech:** any Lightspeed/Bolt/Unifying mouse with the UnifiedBattery
   feature, via a receiver **or connected directly by USB cable / Bluetooth**
   (model name auto-detected over HID++) — verified on PRO X2 SUPERSTRIKE
@@ -307,6 +308,7 @@ mouse_tray/
       lamzu.py          Lamzu             (HID feature report, iface 2)
       logitech.py       Logitech          (HID++ 2.0 via receiver)
       attackshark.py    Attack Shark      (pushed HID input report 3)
+      bloody.py         A4Tech Bloody     (HID feature report 0 + input report 6)
   ui/
     icons.py            tray icon rendering (PIL digits + SVG battery)
     tray.py             TaskBarIcon wrapper
@@ -332,3 +334,6 @@ Each driver's protocol was ported from (or verified against) these projects:
 - **Attack Shark** — [HarukaYamamoto0/attack-shark-x11-driver](https://github.com/HarukaYamamoto0/attack-shark-x11-driver),
   whose notes on the shared messaging protocol were contributed in
   [issue #1](https://github.com/Fan4Metal/mouse_tray/issues/1)
+- **A4Tech Bloody (8K dongle)** — protocol reverse-engineered from a USB capture
+  contributed by JurecUA in
+  [issue #5](https://github.com/Fan4Metal/mouse_tray/issues/5)

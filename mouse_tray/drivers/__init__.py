@@ -33,6 +33,7 @@ _DRIVER_MODULES = [
     "vendor.lamzu",
     "vendor.logitech",
     "vendor.attackshark",
+    "vendor.bloody",
 ]
 
 for _name in _DRIVER_MODULES:

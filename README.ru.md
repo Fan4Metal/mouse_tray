@@ -23,6 +23,7 @@
   Naga V2 Pro, Lancehead Wireless, Pro Click V2
 - **Lamzu:** Maya X, Inca
 - **Attack Shark:** X3
+- **A4Tech Bloody:** SG5 Pro (донгл 8K)
 - **Logitech:** любая мышь Lightspeed/Bolt/Unifying с фичей UnifiedBattery —
   через ресивер **или при прямом подключении по USB-кабелю / Bluetooth**
   (название модели определяется автоматически по HID++) — проверено на
@@ -314,6 +315,7 @@ mouse_tray/
       lamzu.py          Lamzu             (HID feature-отчёт, iface 2)
       logitech.py       Logitech          (HID++ 2.0 через приёмник)
       attackshark.py    Attack Shark      (входящий HID-отчёт 3, push)
+      bloody.py         A4Tech Bloody     (HID feature-отчёт 0 + входящий отчёт 6)
   ui/
     icons.py            отрисовка значка трея (цифры PIL + SVG-батарейка)
     tray.py             обёртка над TaskBarIcon
@@ -339,3 +341,6 @@ mouse_tray/
 - **Attack Shark** — [HarukaYamamoto0/attack-shark-x11-driver](https://github.com/HarukaYamamoto0/attack-shark-x11-driver);
   заметки по общему протоколу сообщений присланы в
   [issue #1](https://github.com/Fan4Metal/mouse_tray/issues/1)
+- **A4Tech Bloody (донгл 8K)** — протокол восстановлен по USB-захвату,
+  присланному JurecUA в
+  [issue #5](https://github.com/Fan4Metal/mouse_tray/issues/5)
