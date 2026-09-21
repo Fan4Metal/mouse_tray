@@ -6,9 +6,9 @@ and refreshing the running tray is the caller's job (see ``app._open_settings``)
 The font picker lists monospaced faces by default (the indicator wants
 fixed-width digits) and previews each one in its own face; the "Show all fonts"
 checkbox widens it to every installed face. Face names are resolved back to a
-``.ttf``/``.otf`` file so PIL can load them. Every font, text-size or outline
-change is also offered to the caller for a live tray repaint, without waiting
-for OK.
+``.ttf``/``.otf`` file so PIL can load them. Every font, text-size, outline or
+battery-icon change is also offered to the caller for a live tray repaint,
+without waiting for OK.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import winreg
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import wx
 import wx.adv
@@ -27,25 +28,30 @@ from ..logging_setup import open_log
 from ..resources import icon_path
 
 
-def open_settings(
-    parent: wx.Window,
-    config: Config,
-    *,
-    on_font_preview: Callable[[str | None], None] | None = None,
-    on_size_preview: Callable[[int], None] | None = None,
-    on_outline_preview: Callable[[bool], None] | None = None,
-) -> bool:
+@dataclass(frozen=True)
+class PreviewHooks:
+    """Callbacks the dialog fires so the caller can repaint the tray live.
+
+    Each fires every time its control changes (and on "Reset to defaults");
+    ``font`` receives the picked font file, or ``None`` when the selection
+    clears. The caller must drop the previews once the dialog returns.
+    """
+
+    font: Callable[[str | None], None] | None = None
+    size: Callable[[int], None] | None = None
+    outline: Callable[[bool], None] | None = None
+    battery_icon: Callable[[bool], None] | None = None
+
+
+def open_settings(parent: wx.Window, config: Config, preview: PreviewHooks | None = None) -> bool:
     """Show the modal settings dialog, centered on screen.
 
     On OK the edited values are written back onto ``config`` in place and
     ``True`` is returned; on Cancel nothing changes and ``False`` is returned.
-    ``on_font_preview`` fires with the picked font file every time the font
-    selection changes (``None`` when it clears), ``on_size_preview`` with the
-    slider value and ``on_outline_preview`` with the checkbox state, so the
-    caller can repaint the tray live; the caller must drop the previews when
-    this returns.
+    ``preview`` hooks, when given, repaint the tray live as the user edits
+    (see :class:`PreviewHooks`).
     """
-    dialog = _SettingsDialog(parent, config, on_font_preview, on_size_preview, on_outline_preview)
+    dialog = _SettingsDialog(parent, config, preview or PreviewHooks())
     try:
         if dialog.ShowModal() != wx.ID_OK:
             return False
@@ -160,15 +166,11 @@ class _SettingsDialog(wx.Dialog):
         self,
         parent: wx.Window,
         config: Config,
-        on_font_preview: Callable[[str | None], None] | None,
-        on_size_preview: Callable[[int], None] | None,
-        on_outline_preview: Callable[[bool], None] | None,
+        preview: PreviewHooks,
     ):
         super().__init__(parent, title=f"{config.display_name} {version_string()} settings")
         self.SetIcon(wx.Icon(icon_path("app.ico")))
-        self._on_font_preview = on_font_preview
-        self._on_size_preview = on_size_preview
-        self._on_outline_preview = on_outline_preview
+        self._preview = preview
 
         self._all_faces, self._mono_faces, self._face_to_path, self._path_to_face = _collect_faces()
 
@@ -211,6 +213,7 @@ class _SettingsDialog(wx.Dialog):
             "the percent digits. The exact number moves to the\n"
             "tray tooltip.",
         )
+        self._battery_icon.Bind(wx.EVT_CHECKBOX, self._on_battery_icon)
         self._debug = self._add_checkbox(grid, "Debug logging:", config.debug)
 
         reset = wx.Button(self, label="Reset to defaults")
@@ -358,7 +361,7 @@ class _SettingsDialog(wx.Dialog):
 
     def _emit_font_preview(self) -> None:
         """Offer the current font pick to the live tray preview, if any."""
-        if self._on_font_preview is None:
+        if self._preview.font is None:
             return
         face = self._font.GetStringSelection()
         path = self._face_to_path.get(face) if face else None
@@ -367,7 +370,7 @@ class _SettingsDialog(wx.Dialog):
                 ImageFont.truetype(path, 16)
             except OSError:
                 path = None  # uninstalled mid-dialog; fall back to the current font
-        self._on_font_preview(path)
+        self._preview.font(path)
 
     def _on_all_fonts(self, evt: wx.CommandEvent) -> None:
         self._populate_faces()
@@ -381,8 +384,8 @@ class _SettingsDialog(wx.Dialog):
 
     def _emit_size_preview(self) -> None:
         """Offer the current size pick to the live tray preview, if any."""
-        if self._on_size_preview is not None:
-            self._on_size_preview(self._size.GetValue())
+        if self._preview.size is not None:
+            self._preview.size(self._size.GetValue())
 
     def _on_outline(self, evt: wx.CommandEvent) -> None:
         self._emit_outline_preview()
@@ -390,8 +393,17 @@ class _SettingsDialog(wx.Dialog):
 
     def _emit_outline_preview(self) -> None:
         """Offer the current outline pick to the live tray preview, if any."""
-        if self._on_outline_preview is not None:
-            self._on_outline_preview(self._text_outline.GetValue())
+        if self._preview.outline is not None:
+            self._preview.outline(self._text_outline.GetValue())
+
+    def _on_battery_icon(self, evt: wx.CommandEvent) -> None:
+        self._emit_battery_icon_preview()
+        evt.Skip()
+
+    def _emit_battery_icon_preview(self) -> None:
+        """Offer the current battery-icon pick to the live tray preview, if any."""
+        if self._preview.battery_icon is not None:
+            self._preview.battery_icon(self._battery_icon.GetValue())
 
     def _on_dynamic_color(self, evt: wx.CommandEvent) -> None:
         self._update_bands()
@@ -415,6 +427,7 @@ class _SettingsDialog(wx.Dialog):
         self._dynamic_color.SetValue(defaults.dynamic_color)
         self._update_bands()
         self._battery_icon.SetValue(defaults.battery_icon)
+        self._emit_battery_icon_preview()
         self._debug.SetValue(defaults.debug)
 
     def _on_ok(self, evt: wx.CommandEvent) -> None:

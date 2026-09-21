@@ -81,6 +81,10 @@ class TrayApp(wx.Frame):
         # close) can repaint instantly without waiting for the next poll tick.
         self._last_status: BatteryStatus | None = None
         self._last_name: str | None = None
+        #: Live settings preview for "Show battery icon"; unlike the font/size/
+        #: outline overrides it lives here, not on the renderer, because the
+        #: digits-vs-battery choice is made by _apply_status, not by drawing.
+        self._preview_battery_icon: bool | None = None
 
         self.tray = TrayIcon(
             on_left_click=self._wake,
@@ -266,7 +270,10 @@ class TrayApp(wx.Frame):
             return
 
         color = self.config.charge_color(status.percent) if self.config.dynamic_color else None
-        if self.config.battery_icon:
+        battery_icon = self.config.battery_icon
+        if self._preview_battery_icon is not None:
+            battery_icon = self._preview_battery_icon
+        if battery_icon:
             # The exact number is in the tooltip built above.
             self.tray.update(self.icons.battery_icon(status.percent, color), tooltip)
             return
@@ -353,6 +360,12 @@ class TrayApp(wx.Frame):
         if not self._repaint():
             self.icons.preview_text_outline = None
 
+    def _preview_battery_icon_mode(self, battery_icon: bool | None) -> None:
+        """Live preview: repaint the tray as digits or a battery glyph."""
+        self._preview_battery_icon = battery_icon
+        if not self._repaint():
+            self._preview_battery_icon = None
+
     def _repaint(self) -> bool:
         """Re-render the cached snapshot (preview on/off).
 
@@ -369,18 +382,19 @@ class TrayApp(wx.Frame):
 
     def _open_settings(self) -> None:
         from ..storage import save_settings
-        from .settings import open_settings
+        from .settings import PreviewHooks, open_settings
 
-        ok = open_settings(
-            self,
-            self.config,
-            on_font_preview=self._preview_font,
-            on_size_preview=self._preview_size,
-            on_outline_preview=self._preview_outline,
+        hooks = PreviewHooks(
+            font=self._preview_font,
+            size=self._preview_size,
+            outline=self._preview_outline,
+            battery_icon=self._preview_battery_icon_mode,
         )
+        ok = open_settings(self, self.config, hooks)
         self.icons.preview_font = None
         self.icons.preview_text_size = None
         self.icons.preview_text_outline = None
+        self._preview_battery_icon = None
         if not ok:
             self._repaint()  # drop the preview right away
             return
