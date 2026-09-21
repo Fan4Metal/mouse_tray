@@ -25,7 +25,7 @@ from ..config import config as default_config
 from ..diagnostics import log_startup_diagnostics
 from ..drivers import MouseDriver, detect_all_drivers
 from ..logging_setup import setup_logging
-from .icons import IconRenderer
+from .icons import IconRenderer, tray_icon_size
 from .tray import MouseChoice, TrayIcon
 
 log = logging.getLogger(__name__)
@@ -58,7 +58,8 @@ class TrayApp(wx.Frame):
 
         super().__init__(None, title=config.display_name)
         self.config = config
-        self.icons = IconRenderer(config)
+        self.icons = IconRenderer(config, tray_icon_size(self))
+        log.info("tray icons render at %dpx", self.icons.icon_size)
 
         # The full-charge timer is per mouse, keyed by its display name. We
         # only know which mouse is connected after detection, so the date is
@@ -75,6 +76,11 @@ class TrayApp(wx.Frame):
         self._drivers: dict[str, MouseDriver] = {}
         self._available: list[tuple[str, str]] = []
         self._auto_key: str | None = None
+
+        # Last applied snapshot, so a settings live preview (or a settings
+        # close) can repaint instantly without waiting for the next poll tick.
+        self._last_status: BatteryStatus | None = None
+        self._last_name: str | None = None
 
         self.tray = TrayIcon(
             on_left_click=self._wake,
@@ -211,6 +217,7 @@ class TrayApp(wx.Frame):
         list of states, each rendering and returning. Collapsing it to fit a
         return-count limit would bury the ordering that makes it readable.
         """
+        self._last_status, self._last_name = status, name
         self._sync_mouse(name)
 
         if not status.present:
@@ -323,11 +330,59 @@ class TrayApp(wx.Frame):
 
     # --- settings -----------------------------------------------------------
 
+    def _preview_font(self, font_path: str | None) -> None:
+        """Live preview: repaint the tray in a candidate settings font.
+
+        The override lives on the renderer, so poll ticks keep repainting
+        through it until the dialog closes (OK applies it for real, Cancel
+        clears it) -- the preview never flickers back to the old font.
+        """
+        self.icons.preview_font = font_path
+        if not self._repaint():
+            self.icons.preview_font = None  # not renderable: don't poison later ticks
+
+    def _preview_size(self, text_size: int | None) -> None:
+        """Live preview: repaint the tray at a candidate settings text size."""
+        self.icons.preview_text_size = text_size
+        if not self._repaint():
+            self.icons.preview_text_size = None
+
+    def _preview_outline(self, text_outline: bool | None) -> None:
+        """Live preview: repaint the tray with a candidate outline setting."""
+        self.icons.preview_text_outline = text_outline
+        if not self._repaint():
+            self.icons.preview_text_outline = None
+
+    def _repaint(self) -> bool:
+        """Re-render the cached snapshot (preview on/off).
+
+        Returns False when there is nothing cached yet or the font fails to
+        load, in which case the old icon is simply kept.
+        """
+        if self._last_status is None:
+            return True
+        try:
+            self._apply_status(self._last_status, self._last_name)
+        except OSError:  # stale registry font path: keep the old icon
+            return False
+        return True
+
     def _open_settings(self) -> None:
         from ..storage import save_settings
         from .settings import open_settings
 
-        if not open_settings(self, self.config):
+        ok = open_settings(
+            self,
+            self.config,
+            on_font_preview=self._preview_font,
+            on_size_preview=self._preview_size,
+            on_outline_preview=self._preview_outline,
+        )
+        self.icons.preview_font = None
+        self.icons.preview_text_size = None
+        self.icons.preview_text_outline = None
+        if not ok:
+            self._repaint()  # drop the preview right away
             return
 
         # self.config is mutated in place, so IconRenderer (which holds the same
@@ -335,6 +390,7 @@ class TrayApp(wx.Frame):
         # new poll rate on its next iteration. Persist and refresh now.
         save_settings(self.config.app_name, self.config)
         setup_logging(self.config.app_name, self.config.debug)
+        self._repaint()  # show the applied settings instantly
         self._wake()  # force an immediate re-poll so the icon repaints
 
     def _open_about(self) -> None:

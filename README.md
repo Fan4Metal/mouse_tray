@@ -99,6 +99,13 @@ from a dialog. Changes apply immediately and are saved to the registry
 (`HKCU\SOFTWARE\Mouse_Tray\Settings`), so they survive restarts; **Reset to
 defaults** restores the code defaults.
 
+The font picker lists monospaced faces by default (the digits want to be
+fixed-width); tick **Show all fonts** to pick any installed font. The **Text
+size** slider scales the digits from 50% to 100% of the fitted maximum, and
+**Text outline** (on by default) keeps them readable on a same-colored
+taskbar. Font, size and outline changes preview on the tray immediately,
+without closing the dialog.
+
 With **Color by charge level** enabled, the battery-percent indicator is colored
 by charge: the font color above 50%, and two extra pickers appear next to it for
 the low bands — **≤ 50%** (yellow by default) and **≤ 20%** (red by default).
