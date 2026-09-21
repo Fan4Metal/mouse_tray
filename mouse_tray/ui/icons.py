@@ -9,9 +9,8 @@ native tray size (16px at 100% DPI, scaled up with the display):
   mush down with a cheap filter. Short strings share the size fitted to the
   widest pair and the two three-char strings their own size, each centered by
   its measured ink box in whatever font is configured and scaled to the
-  preferred percent of that fit (past it, wide strings overflow -- previewed
-  live). A thin contrasting outline keeps the glyphs readable on any taskbar
-  theme.
+  preferred percent of that fit. A thin contrasting outline (optional) keeps
+  the glyphs readable on any taskbar theme.
 * :meth:`IconRenderer.battery_icon` -- an SVG template is filled in with the
   requested color and charge level, then rasterized by ``wx.svg`` (NanoSVG,
   bundled with wxPython -- no extra dependency) straight at the native size.
@@ -99,22 +98,28 @@ class _TextSpec:
 
     canvas: int  # supersampled edge; shrunk to native after drawing
     box: int  # usable square the ink (outline included) must fit
-    cap: int  # largest em size the reference fit may return
-    stroke: int  # outline width
+    stroke: int  # outline width (0 draws plain glyphs)
     pct: int  # percent of the fitted size to actually draw
     native: int  # tray edge in physical pixels (the shrink target)
 
 
-def _text_spec(size_px: int, pct: int = TEXT_SIZE_DEFAULT) -> _TextSpec:
-    """Render spec for a native icon edge of ``size_px`` (both sanitized)."""
+def _text_spec(size_px: int, pct: int = TEXT_SIZE_DEFAULT, outline: bool = True) -> _TextSpec:
+    """Render spec for a native icon edge of ``size_px`` (both sanitized).
+
+    ``outline`` off means ``stroke`` 0, so the fit and centering measure
+    exactly what is drawn -- plain glyphs fill the same box the outlined
+    ones would.
+    """
     native = max(8, int(size_px))
     pct = max(TEXT_SIZE_MIN, min(TEXT_SIZE_MAX, int(pct)))
     canvas = native * _TEXT_SS
     box = canvas - 2 * max(1, round(canvas * _TEXT_MARGIN_FRAC))
+    if not outline:
+        return _TextSpec(canvas, box, 0, pct, native)
     # Outline ~0.5px at 100% DPI, growing with the icon; capped so it never
     # eats more than a quarter of the text box on tiny icons.
     stroke = min(max(2, round(box / 28)), max(1, box // 4))
-    return _TextSpec(canvas, box, box, stroke, pct, native)
+    return _TextSpec(canvas, box, stroke, pct, native)
 
 
 def tray_icon_size(window: wx.Window) -> int:
@@ -135,15 +140,13 @@ def tray_icon_size(window: wx.Window) -> int:
 
 
 @lru_cache(maxsize=8)
-def _reference_size(font_path: str, spec: _TextSpec, candidates: tuple[str, ...]) -> int:
-    """Em size at which every candidate fits the spec box, scaled to percent.
+def _fitted_size(font_path: str, box: int, stroke: int, candidates: tuple[str, ...]) -> int:
+    """Em size at which every candidate fits a ``box`` square, outline included.
 
     The estimate comes from scratch-size ratios; the loop then verifies each
     candidate at the real size *with* the outline and steps down until all fit.
-    Called once per tier (see :data:`_SIZE_REF_SHORT` / :data:`_SIZE_REF_LONG`),
-    and the result is scaled to ``pct`` of that fit -- ``TEXT_SIZE_DEFAULT``
-    renders the fit itself, lower values shrink, higher values grow past it
-    (wide strings then overflow, by explicit user choice).
+    Cached on the fit inputs only -- the size percent just scales the result
+    (see :func:`_reference_size`), so slider steps never re-run the fit.
     """
     scratch = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
     ref_font = ImageFont.truetype(font_path, _TEXT_REF_SIZE)
@@ -152,22 +155,35 @@ def _reference_size(font_path: str, spec: _TextSpec, candidates: tuple[str, ...]
         left, top, right, bottom = scratch.textbbox((0, 0), text, font=ref_font)
         width, height = right - left, bottom - top
         if width > 0 and height > 0:
-            estimates.append(round(_TEXT_REF_SIZE * min(spec.box / width, spec.box / height)))
-    size = max(8, min(spec.cap, min(estimates, default=spec.cap)))
+            estimates.append(round(_TEXT_REF_SIZE * min(box / width, box / height)))
+    size = max(8, min(box, min(estimates, default=box)))
     font = ImageFont.truetype(font_path, size)
-    while size > 8 and _overflows(scratch, font, spec, candidates):
+    while size > 8 and _overflows(scratch, font, box, stroke, candidates):
         size -= 4
         font = ImageFont.truetype(font_path, size)
+    return size
+
+
+def _reference_size(font_path: str, spec: _TextSpec, candidates: tuple[str, ...]) -> int:
+    """The tier's em size in ``font_path``, scaled to the spec's percent.
+
+    Short strings share the size fitted to the widest pair and the two
+    three-char strings their own size (see :data:`_SIZE_REF_SHORT` /
+    :data:`_SIZE_REF_LONG`); ``TEXT_SIZE_DEFAULT`` renders the fit itself
+    and lower values shrink every string proportionally.
+    """
+    size = _fitted_size(font_path, spec.box, spec.stroke, candidates)
     return max(8, round(size * spec.pct / TEXT_SIZE_DEFAULT))
 
 
 def _overflows(
-    draw: ImageDraw.ImageDraw, font: ImageFont.FreeTypeFont, spec: _TextSpec, candidates: tuple[str, ...]
+    draw: ImageDraw.ImageDraw, font: ImageFont.FreeTypeFont, box: int, stroke: int,
+    candidates: tuple[str, ...],
 ) -> bool:
-    """Whether any candidate string exceeds the spec box as drawn."""
+    """Whether any candidate string exceeds a ``box`` square as drawn."""
     for text in candidates:
-        left, top, right, bottom = draw.textbbox((0, 0), text, font=font, stroke_width=spec.stroke)
-        if max(right - left, bottom - top) > spec.box:
+        left, top, right, bottom = draw.textbbox((0, 0), text, font=font, stroke_width=stroke)
+        if max(right - left, bottom - top) > box:
             return True
     return False
 
@@ -179,11 +195,10 @@ def _fit_text(
 
     Short strings share the size fitted to the widest pair and long ones the
     size fitted to ``"100"``/``"Zzz"``, scaled to the requested percent (see
-    :func:`_reference_size`); past the fit wide strings overflow, which is the
-    user's explicit choice and previews live, so nothing here shrinks it back.
-    The origin comes from this string's own ink box -- the real extent in this
-    font, outline included -- measured with the default ``la`` anchor that
-    ``draw.text`` shares, so the box maps straight to where the ink lands.
+    :func:`_reference_size`). The origin comes from this string's own ink box
+    -- the real extent in this font, outline included -- measured with the
+    default ``la`` anchor that ``draw.text`` shares, so the box maps straight
+    to where the ink lands.
     """
     # "100"/"Zzz" are the only 3-char strings; anything longer takes the long
     # tier as well (no other string exists today).
@@ -208,11 +223,12 @@ def _render_text(
 ) -> wx.Icon:
     """Draw ``text`` centered at the native tray size on a transparent canvas.
 
-    Glyphs are drawn supersampled and shrunk with LANCZOS, and carry a thin
-    contrasting outline so they stay readable on any taskbar theme. Cached like
-    :func:`_render_battery`: the poll loop re-requests the same few strings
-    ("Zzz", "-", a steady percent) tick after tick, and a font, color, size or
-    icon-size change simply lands on new keys (the spec carries the last two).
+    Glyphs are drawn supersampled and shrunk with LANCZOS, and optionally
+    carry a thin contrasting outline so they stay readable on any taskbar
+    theme. Cached like :func:`_render_battery`: the poll loop re-requests the
+    same few strings ("Zzz", "-", a steady percent) tick after tick, and a
+    font, color, size, outline or icon-size change simply lands on new keys
+    (the spec carries the size, outline and icon size).
     """
     image = Image.new("RGBA", (spec.canvas, spec.canvas), background)
     draw = ImageDraw.Draw(image)
@@ -262,22 +278,28 @@ class IconRenderer:
         self.preview_font: str | None = None
         #: Live settings preview for the text size (percent); see preview_font.
         self.preview_text_size: int | None = None
+        #: Live settings preview for the text outline; see preview_font.
+        self.preview_text_outline: bool | None = None
 
     def text_icon(self, text: str, color: tuple[int, int, int] | None = None) -> wx.Icon:
         """Render ``text`` (e.g. a battery percent or "Zzz") as a tray icon.
 
         Short strings share the size fitted to the widest pair and the two
         three-char strings their own size, each centered by its own ink box in
-        the configured font (or the live settings preview font/size) and scaled
-        to the size percent -- past the fit, wide strings overflow by explicit
-        user choice. A contrasting outline keeps it readable on any taskbar
-        theme. ``color`` overrides the configured foreground color when given
-        (used for the charge-level coloring of the battery percent).
+        the configured font (or the live settings preview font/size/outline)
+        and scaled to the size percent. A contrasting outline (optional) keeps
+        it readable on any taskbar theme. ``color`` overrides the configured
+        foreground color when given (used for the charge-level coloring of the
+        battery percent).
         """
         fill = tuple(color or self.config.foreground_color)
         font = self.preview_font or self.config.font
         pct = self.preview_text_size if self.preview_text_size is not None else self.config.text_size
-        spec = _text_spec(self.icon_size, pct)
+        if self.preview_text_outline is not None:
+            outline = self.preview_text_outline
+        else:
+            outline = self.config.text_outline
+        spec = _text_spec(self.icon_size, pct, outline)
         return _render_text(text, fill, font, self.config.background_color, spec)
 
     def battery_icon(self, level: int, color: tuple[int, int, int] | None = None) -> wx.Icon:

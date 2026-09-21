@@ -347,6 +347,12 @@ class TrayApp(wx.Frame):
         if not self._repaint():
             self.icons.preview_text_size = None
 
+    def _preview_outline(self, text_outline: bool | None) -> None:
+        """Live preview: repaint the tray with a candidate outline setting."""
+        self.icons.preview_text_outline = text_outline
+        if not self._repaint():
+            self.icons.preview_text_outline = None
+
     def _repaint(self) -> bool:
         """Re-render the cached snapshot (preview on/off).
 
@@ -366,10 +372,15 @@ class TrayApp(wx.Frame):
         from .settings import open_settings
 
         ok = open_settings(
-            self, self.config, on_font_preview=self._preview_font, on_size_preview=self._preview_size
+            self,
+            self.config,
+            on_font_preview=self._preview_font,
+            on_size_preview=self._preview_size,
+            on_outline_preview=self._preview_outline,
         )
         self.icons.preview_font = None
         self.icons.preview_text_size = None
+        self.icons.preview_text_outline = None
         if not ok:
             self._repaint()  # drop the preview right away
             return

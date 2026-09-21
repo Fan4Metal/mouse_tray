@@ -6,8 +6,9 @@ and refreshing the running tray is the caller's job (see ``app._open_settings``)
 The font picker lists monospaced faces by default (the indicator wants
 fixed-width digits) and previews each one in its own face; the "Show all fonts"
 checkbox widens it to every installed face. Face names are resolved back to a
-``.ttf``/``.otf`` file so PIL can load them. Every font or text-size change is
-also offered to the caller for a live tray repaint, without waiting for OK.
+``.ttf``/``.otf`` file so PIL can load them. Every font, text-size or outline
+change is also offered to the caller for a live tray repaint, without waiting
+for OK.
 """
 
 from __future__ import annotations
@@ -32,17 +33,19 @@ def open_settings(
     *,
     on_font_preview: Callable[[str | None], None] | None = None,
     on_size_preview: Callable[[int], None] | None = None,
+    on_outline_preview: Callable[[bool], None] | None = None,
 ) -> bool:
     """Show the modal settings dialog, centered on screen.
 
     On OK the edited values are written back onto ``config`` in place and
     ``True`` is returned; on Cancel nothing changes and ``False`` is returned.
     ``on_font_preview`` fires with the picked font file every time the font
-    selection changes (``None`` when it clears) and ``on_size_preview`` with
-    the slider value, so the caller can repaint the tray live; the caller must
-    drop the previews when this returns.
+    selection changes (``None`` when it clears), ``on_size_preview`` with the
+    slider value and ``on_outline_preview`` with the checkbox state, so the
+    caller can repaint the tray live; the caller must drop the previews when
+    this returns.
     """
-    dialog = _SettingsDialog(parent, config, on_font_preview, on_size_preview)
+    dialog = _SettingsDialog(parent, config, on_font_preview, on_size_preview, on_outline_preview)
     try:
         if dialog.ShowModal() != wx.ID_OK:
             return False
@@ -159,15 +162,17 @@ class _SettingsDialog(wx.Dialog):
         config: Config,
         on_font_preview: Callable[[str | None], None] | None,
         on_size_preview: Callable[[int], None] | None,
+        on_outline_preview: Callable[[bool], None] | None,
     ):
         super().__init__(parent, title=f"{config.display_name} {version_string()} settings")
         self.SetIcon(wx.Icon(icon_path("app.ico")))
         self._on_font_preview = on_font_preview
         self._on_size_preview = on_size_preview
+        self._on_outline_preview = on_outline_preview
 
         self._all_faces, self._mono_faces, self._face_to_path, self._path_to_face = _collect_faces()
 
-        grid = wx.FlexGridSizer(rows=8, cols=2, vgap=8, hgap=8)
+        grid = wx.FlexGridSizer(rows=9, cols=2, vgap=8, hgap=8)
         grid.AddGrowableCol(1, 1)
 
         grid.Add(wx.StaticText(self, label="Poll interval (s):"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -177,6 +182,15 @@ class _SettingsDialog(wx.Dialog):
         self._build_font_section(grid)
 
         self._build_size_row(grid, config.text_size)
+
+        self._text_outline = self._add_checkbox(
+            grid,
+            "Text outline:",
+            config.text_outline,
+            "Draw a contrasting outline around the tray digits.\n"
+            "Keeps them readable on a same-colored taskbar.",
+        )
+        self._text_outline.Bind(wx.EVT_CHECKBOX, self._on_outline)
 
         self._build_color_row(grid, config)
 
@@ -268,7 +282,7 @@ class _SettingsDialog(wx.Dialog):
             style=wx.SL_HORIZONTAL,
         )
         self._size.SetToolTip(
-            "Scale the tray digits.\n50% fills the icon; above that wide values may overflow."
+            "Scale the tray digits.\n100% fills the icon; lower values shrink."
         )
         self._size_label = wx.StaticText(self, label=f"{size_value}%")
         self._size_label.SetMinSize((40, -1))  # "100%" width, so the row never jumps
@@ -366,6 +380,15 @@ class _SettingsDialog(wx.Dialog):
         if self._on_size_preview is not None:
             self._on_size_preview(self._size.GetValue())
 
+    def _on_outline(self, evt: wx.CommandEvent) -> None:
+        self._emit_outline_preview()
+        evt.Skip()
+
+    def _emit_outline_preview(self) -> None:
+        """Offer the current outline pick to the live tray preview, if any."""
+        if self._on_outline_preview is not None:
+            self._on_outline_preview(self._text_outline.GetValue())
+
     def _on_dynamic_color(self, evt: wx.CommandEvent) -> None:
         self._update_bands()
         evt.Skip()
@@ -380,6 +403,8 @@ class _SettingsDialog(wx.Dialog):
         self._size.SetValue(defaults.text_size)
         self._size_label.SetLabel(f"{defaults.text_size}%")
         self._emit_size_preview()
+        self._text_outline.SetValue(defaults.text_outline)
+        self._emit_outline_preview()
         self._color.SetColour(wx.Colour(*defaults.foreground_color))
         self._mid_color.SetColour(wx.Colour(*defaults.mid_color))
         self._low_color.SetColour(wx.Colour(*defaults.low_color))
@@ -411,6 +436,7 @@ class _SettingsDialog(wx.Dialog):
         if face:
             config.font = self._face_to_path[face]
         config.text_size = self._size.GetValue()
+        config.text_outline = self._text_outline.GetValue()
         config.foreground_color = _rgb(self._color)
         config.mid_color = _rgb(self._mid_color)
         config.low_color = _rgb(self._low_color)
