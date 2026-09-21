@@ -285,7 +285,11 @@ class _SettingsDialog(wx.Dialog):
             "Scale the tray digits.\n100% fills the icon; lower values shrink."
         )
         self._size_label = wx.StaticText(self, label=f"{size_value}%")
-        self._size_label.SetMinSize((40, -1))  # "100%" width, so the row never jumps
+        # Reserve the widest value's width so the row never jumps; measured in
+        # the label's own font, so it survives DPI scaling (a fixed 40px clipped
+        # the "%" at 150%).
+        widest = self._size_label.GetTextExtent(f"{TEXT_SIZE_MAX}%").width
+        self._size_label.SetMinSize((widest, -1))
         self._size.Bind(wx.EVT_SLIDER, self._on_size_changed)
         size_row = wx.BoxSizer(wx.HORIZONTAL)
         size_row.Add(self._size, 1, wx.ALIGN_CENTER_VERTICAL)
