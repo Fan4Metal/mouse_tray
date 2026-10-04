@@ -14,7 +14,7 @@ file, no changes to the UI or polling code.
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro, VGN F2 Pro Max
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
-- **Dareu:** A950 Air
+- **Dareu:** A950 Air, A950 Wing
 - **G-Wolves:** Lycan
 - **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
@@ -68,6 +68,13 @@ fresh clone. `uv.lock` pins exact versions for reproducible installs.
 uv run --extra build python tools/make_release.py
 # -> dist/mouse_tray/
 ```
+
+The build is a **folder**, not a single file: `mouse_tray.exe` loads Python and
+its libraries (`python314.dll` and the rest) from the `_internal\` directory next
+to it. Copy or move the whole `dist\mouse_tray\` folder — the exe on its own
+fails to start with a "python314.dll not found" error. A one-file build is
+deliberately not used: it would unpack itself into `%TEMP%` on every launch,
+starting slower and tripping antivirus heuristics more often.
 
 The resulting folder is about 37 MB. Drivers are collected as a whole
 (`--collect-submodules`), so a new driver ships without touching the script.

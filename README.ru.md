@@ -14,7 +14,7 @@
   VXE MAD R Major Plus, VXE R1 Pro Max, VXE R1 SE+, VGN F1 Pro, VGN F2 Pro Max
 - **Zaopin:** Z2 Mini
 - **Scyrox:** V8
-- **Dareu:** A950 Air
+- **Dareu:** A950 Air, A950 Wing
 - **G-Wolves:** Lycan
 - **MCHOSE:** L7 Pro
 - **Ninjutso:** Sora V2
@@ -69,6 +69,13 @@ uv run python main.py        # или:  uv run python -m mouse_tray
 uv run --extra build python tools/make_release.py
 # -> dist/mouse_tray/
 ```
+
+Сборка — это **папка**, а не один файл: `mouse_tray.exe` загружает Python и
+библиотеки (`python314.dll` и остальное) из каталога `_internal\` рядом с собой.
+Копируйте или переносите папку `dist\mouse_tray\` целиком — один exe без неё
+не запустится с ошибкой «не найден python314.dll». Однофайловая сборка не
+используется намеренно: она распаковывалась бы во `%TEMP%` при каждом запуске,
+стартовала бы медленнее и чаще вызывала ложные срабатывания антивирусов.
 
 Каталог сборки занимает около 37 МБ. Драйверы собираются целиком
 (`--collect-submodules`), поэтому новый драйвер попадает в сборку без правок

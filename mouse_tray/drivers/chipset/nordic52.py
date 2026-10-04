@@ -63,6 +63,8 @@ class Nordic52Driver(HidDriver):
         _model("Scyrox V8", 0x3554, 0xF5F7, 0xF5F6),
         # "DAREU Receiver" dongle 0x1175, direct cable 0x1193.
         _model("Dareu A950 Air", 0x260D, 0x1175, 0x1193),
+        # Same silicon as the Air; dongle 0x1154, direct cable 0x1196.
+        _model("Dareu A950 Wing", 0x260D, 0x1154, 0x1196),
         # "G-Wolves Receiver RS" dongle 0x3854, direct cable 0x4719.
         _model("G-Wolves Lycan", 0x33E4, 0x3854, 0x4719),
     ]
