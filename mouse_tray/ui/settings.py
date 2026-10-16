@@ -2,6 +2,9 @@
 
 The dialog only knows how to read/write a :class:`Config`; persisting the result
 and refreshing the running tray is the caller's job (see ``app._open_settings``).
+The one exception is "Start with Windows": it is not part of ``Config`` --
+Windows' ``Run`` key is its only store (see :mod:`mouse_tray.autostart`) -- so the dialog
+reads it on open and writes it itself on OK.
 
 The font picker lists monospaced faces by default (the indicator wants
 fixed-width digits) and previews each one in its own face; the "Show all fonts"
@@ -22,6 +25,7 @@ import wx
 import wx.adv
 from PIL import ImageFont
 
+from .. import autostart
 from ..build_info import version_string
 from ..config import LOW_THRESHOLD, MID_THRESHOLD, TEXT_SIZE_MAX, TEXT_SIZE_MIN, Config
 from ..logging_setup import open_log
@@ -174,7 +178,7 @@ class _SettingsDialog(wx.Dialog):
 
         self._all_faces, self._mono_faces, self._face_to_path, self._path_to_face = _collect_faces()
 
-        grid = wx.FlexGridSizer(rows=9, cols=2, vgap=8, hgap=8)
+        grid = wx.FlexGridSizer(rows=10, cols=2, vgap=8, hgap=8)
         grid.AddGrowableCol(1, 1)
 
         grid.Add(wx.StaticText(self, label="Poll interval (s):"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -214,6 +218,15 @@ class _SettingsDialog(wx.Dialog):
             "tray tooltip.",
         )
         self._battery_icon.Bind(wx.EVT_CHECKBOX, self._on_battery_icon)
+        self._app_name = config.app_name
+        self._autostart_was = autostart.is_enabled(config.app_name)
+        self._autostart = self._add_checkbox(
+            grid,
+            "Start with Windows:",
+            self._autostart_was,
+            "Run the program when you sign in to Windows.\n"
+            "Also shown on the Startup tab of Task Manager.",
+        )
         self._debug = self._add_checkbox(grid, "Debug logging:", config.debug)
 
         reset = wx.Button(self, label="Reset to defaults")
@@ -429,6 +442,8 @@ class _SettingsDialog(wx.Dialog):
         self._battery_icon.SetValue(defaults.battery_icon)
         self._emit_battery_icon_preview()
         self._debug.SetValue(defaults.debug)
+        # Autostart is left alone: it is a system integration, not a
+        # look-and-feel default, and it never lived in Config.
 
     def _on_ok(self, evt: wx.CommandEvent) -> None:
         face = self._font.GetStringSelection()
@@ -443,7 +458,26 @@ class _SettingsDialog(wx.Dialog):
                     self,
                 )
                 return  # keep the dialog open so the user can fix it
+        if not self._apply_autostart():
+            return
         evt.Skip()  # let the standard OK handler close the dialog
+
+    def _apply_autostart(self) -> bool:
+        """Write a changed autostart choice; ``False`` keeps the dialog open."""
+        wanted = self._autostart.GetValue()
+        if wanted == self._autostart_was:
+            return True  # unchanged: leave the entry exactly as Windows has it
+        try:
+            autostart.set_enabled(self._app_name, wanted)
+        except OSError as exc:
+            wx.MessageBox(
+                f"Could not change the autostart setting:\n{exc}",
+                "Start with Windows",
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            return False
+        return True
 
     # --- result -------------------------------------------------------------
 

@@ -123,6 +123,13 @@ filled to that percent instead of as digits, and the exact number moves to the
 hover tooltip (which also shows the mouse name and time since the last full
 charge). "No mouse", sleep and unknown-level states stay textual either way.
 
+**Start with Windows** adds the program to the current user's sign-in startup
+(`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `Mouse_Tray`); no
+administrator rights are needed. The checkbox reflects the actual Windows
+state, including the switch on the Startup tab of Task Manager, and is not
+affected by **Reset to defaults**. If the program folder is moved, the entry is
+redirected to the new location on the next manual start.
+
 For the full set of fields (including those not exposed in the dialog), edit
 [`mouse_tray/config.py`](mouse_tray/config.py):
 
@@ -295,6 +302,7 @@ a driver module — only `detect_all_drivers()` and the `MouseDriver` contract.
 
 ```
 mouse_tray/
+  autostart.py          Start with Windows (HKCU Run value)
   battery.py            BatteryStatus — the universal status model
   config.py             settings (poll rate, colors, font)
   resources.py          PyInstaller-safe resource paths

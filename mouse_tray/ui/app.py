@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import wx
 from wx.adv import NotificationMessage
 
+from .. import autostart
 from ..battery import BatteryStatus
 from ..build_info import version_string
 from ..config import GREEN, Config
@@ -443,6 +444,7 @@ def run(config: Config | None = None) -> None:
     setup_logging(cfg.app_name, cfg.debug)
     log.info("Starting %s %s from %s", cfg.display_name, version_string(), sys.executable)
     log_startup_diagnostics()
+    autostart.repair(cfg.app_name)  # follow the program if its folder moved
     with suppress(AttributeError, OSError):  # non-Windows or older Windows
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     app = _App(cfg)
