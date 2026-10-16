@@ -75,7 +75,7 @@ class Nordic52Driver(HidDriver):
         report[1] = 4
         report[16] = 73
         res = self._transact(report, 17, feature=False, delay=0.1)
-        if res is None:
+        if res is None or len(res) < 8:
             return BatteryStatus.absent()
 
         percent = res[6]

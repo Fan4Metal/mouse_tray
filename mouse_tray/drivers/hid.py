@@ -27,6 +27,8 @@ from .driver import MouseDriver
 
 log = logging.getLogger(__name__)
 
+_READ_TIMEOUT_MS = 1000
+
 
 class HidDriver(MouseDriver):
     """Base for all mice, spoken to over HID via ``hidapi``.
@@ -83,7 +85,8 @@ class HidDriver(MouseDriver):
 
         ``feature=True`` uses HID feature reports (send/get); otherwise plain
         interrupt write/read. ``report[0]`` is the report ID. Never raises for
-        I/O errors -- returns ``None`` so the caller can show "no mouse".
+        I/O errors and never blocks past a short read timeout -- returns
+        ``None`` (also for an empty reply) so the caller can show "no mouse".
         """
         path = self._device_path()
         if path is None:
@@ -99,8 +102,14 @@ class HidDriver(MouseDriver):
             else:
                 device.write(report)
                 time.sleep(delay)
-                res = device.read(read_length)
+                # Without a timeout hidapi blocks until a report arrives, and a
+                # dongle whose mouse is not linked yet (e.g. right after boot)
+                # never answers -- that would hang the poll thread for good.
+                res = device.read(read_length, timeout_ms=_READ_TIMEOUT_MS)
             log.debug("%s received report: %s", self.name, res)
+            if not res:
+                log.info("%s no reply to the request", self.name)
+                return None
             return res
         except OSError as exc:
             log.warning("%s HID transaction failed: %s", self.name, exc)
