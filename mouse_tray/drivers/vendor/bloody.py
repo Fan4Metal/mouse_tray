@@ -51,8 +51,10 @@ Wired
 
 On the cable the mouse enumerates as its own device (PID ``0x3144``, "Wired
 Gaming Mouse") with the same three-interface layout, and pushes ``06 56`` on
-connect. The dongle keeps reporting the same mouse meanwhile, so with the
-dongle plugged in the wireless PID wins (see :func:`~mouse_tray.drivers.bus.devices_for`).
+connect. A dongle left plugged in meanwhile answers ``06 56 FF ..`` -- percent
+255, "no radio link" -- so the wired PID is asked first and the dongle is the
+fallback, and a 255 answer is skipped rather than taken for the mouse being
+gone (reported and verified on hardware by JurecUA in the same issue).
 """
 
 from __future__ import annotations
@@ -65,7 +67,7 @@ from typing import ClassVar
 import hid  # hidapi -- the single core transport dependency
 
 from ...battery import BatteryStatus
-from ..bus import devices_for
+from ..bus import matching
 from ..driver import MouseModel, register
 from ..hid import HidDriver
 
@@ -91,6 +93,8 @@ _SUBTYPE_BATTERY = 0x56
 _PERCENT_BYTE = 2
 _CABLE_BYTE = 3
 _REPORT_LEN = 8
+#: Percent byte of a ``06 56`` line from a dongle that has no radio link.
+_NO_LINK = 0xFF
 #: The burst lands within ~70 ms of the query; leave generous headroom.
 _READ_TIMEOUT = 1.0
 
@@ -108,23 +112,41 @@ class BloodyDriver(HidDriver):
         _model("Bloody SG5 Pro", 0x3069, 0x3144),
     ]
 
-    def _command_path(self) -> bytes | None:
-        """OS path of the command collection (interface 2, usage page 0xFF02)."""
-        for device in devices_for(self.model):
-            if device["usage_page"] == _COMMAND_USAGE_PAGE and device["usage"] == _COMMAND_USAGE:
-                return device["path"]
-        return None
+    def _links(self) -> list[int]:
+        """PIDs to ask, best first: the cable, then the dongle -- only those on the bus."""
+        model = self.model
+        return [pid for pid in (model.pid_wired, model.pid_wireless) if matching(model.vid, pid)]
+
+    def _paths(self, pid: int) -> tuple[bytes | None, bytes | None]:
+        """OS paths of the status and the command collection of one device."""
+        status_path = command_path = None
+        for device in matching(self.model.vid, pid):
+            page, usage = device["usage_page"], device["usage"]
+            if (page, usage) == (_STATUS_USAGE_PAGE, _STATUS_USAGE) and status_path is None:
+                status_path = device["path"]
+            elif (page, usage) == (_COMMAND_USAGE_PAGE, _COMMAND_USAGE) and command_path is None:
+                command_path = device["path"]
+        return status_path, command_path
 
     def read_status(self) -> BatteryStatus:
-        report = self._read_battery_report()
-        if report is None:
-            return self._no_reply()
-        return self._decode(report)
+        """Ask the cable first, then the dongle; the first usable answer wins.
 
-    def _read_battery_report(self) -> list[int] | None:
-        """Ask for status and return the raw ``06 56`` line, or ``None``."""
-        status_path = self._device_path()
-        command_path = self._command_path()
+        A device that stays silent or answers 255 (the dongle while the mouse
+        is on the cable) is skipped, so one dead link never hides a working one.
+        """
+        for pid in self._links():
+            report = self._read_battery_report(pid)
+            if report is None:
+                continue
+            if report[_PERCENT_BYTE] == _NO_LINK:
+                log.debug("%s PID 0x%04X answers 'no link' (255)", self.name, pid)
+                continue
+            return self._decode(report)
+        return self._no_reply()
+
+    def _read_battery_report(self, pid: int) -> list[int] | None:
+        """Ask one device for status and return the raw ``06 56`` line, or ``None``."""
+        status_path, command_path = self._paths(pid)
         if status_path is None or command_path is None:
             return None
         # Open the status channel *before* asking, so the reply is queued for
@@ -143,9 +165,10 @@ class BloodyDriver(HidDriver):
                 status.close()
 
     def _no_reply(self) -> BatteryStatus:
-        if self._connected_wired():
-            # Cable only: charging for sure, level unknown until it answers.
-            log.info("%s wired, no battery reply: charging, level not reported", self.name)
+        if matching(self.model.vid, self.model.pid_wired):
+            # On the cable, whether or not the dongle is plugged in too: charging
+            # for sure, level unknown until a device answers.
+            log.info("%s on the cable, no battery reply: charging, level not reported", self.name)
             return BatteryStatus(present=True, percent=None, charging=True)
         log.info("%s no battery reply within %.1fs", self.name, _READ_TIMEOUT)
         return BatteryStatus.absent()
