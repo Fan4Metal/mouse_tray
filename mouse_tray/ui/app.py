@@ -246,15 +246,32 @@ class TrayApp(wx.Frame):
 
         tooltip = self._tooltip(name, status)
 
+        battery_icon = self.config.battery_icon
+        if self._preview_battery_icon is not None:
+            battery_icon = self._preview_battery_icon
+
         if status.charging:
             self._was_full = False
-            self._start_animation(tooltip)
+            if battery_icon:
+                self._start_animation(tooltip)
+            else:
+                self._stop_animation()
+                color = (
+                    self.config.charge_color(status.percent)
+                    if self.config.dynamic_color and status.percent is not None
+                    else None
+                )
+                value = str(status.percent) if status.percent is not None else "?"
+                self.tray.update(self.icons.text_icon(value, color), tooltip)
             return
 
         self._stop_animation()
 
         if status.full:
-            self.tray.update(self.icons.battery_icon(100, GREEN), tooltip)
+            if battery_icon:
+                self.tray.update(self.icons.battery_icon(100, GREEN), tooltip)
+            else:
+                self.tray.update(self.icons.text_icon("100", GREEN), tooltip)
             if not self._was_full:
                 self._was_full = True
                 self._record_full_charge()
@@ -277,13 +294,13 @@ class TrayApp(wx.Frame):
             # 100% but no "full" flag from the driver. The foreground color is
             # what dynamic_color would pick for this band anyway, and green
             # stays reserved for the full state above.
-            self.tray.update(self.icons.battery_icon(100), tooltip)
+            if battery_icon:
+                self.tray.update(self.icons.battery_icon(100), tooltip)
+            else:
+                self.tray.update(self.icons.text_icon("100"), tooltip)
             return
 
         color = self.config.charge_color(status.percent) if self.config.dynamic_color else None
-        battery_icon = self.config.battery_icon
-        if self._preview_battery_icon is not None:
-            battery_icon = self._preview_battery_icon
         if battery_icon:
             # The exact number is in the tooltip built above.
             self.tray.update(self.icons.battery_icon(status.percent, color), tooltip)
