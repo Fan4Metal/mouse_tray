@@ -55,6 +55,7 @@ class Nordic52Driver(HidDriver):
         _model("VXE MAD R Major Plus", 0x373B, 0x1040, 0x104C),
         _model("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
         _model("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
+        _model("VXE R1 SE+ (1K dongle)", 0x373B, 0x1085, 0x1085),
         _model("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
         _model("VGN F2 Pro Max", 0x3554, 0xFB3E, 0xFB3D),
         # Compx rebrand on the same silicon; receiver F524, direct cable F526.
