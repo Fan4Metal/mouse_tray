@@ -47,8 +47,10 @@ def enumerate_devices() -> list[dict]:
     return devices
 
 
-def matching(vid: int, pid: int) -> list[dict]:
-    """Snapshot entries for one VID/PID pair."""
+def matching(vid: int, pid: int | None) -> list[dict]:
+    """Snapshot entries for one VID/PID pair (none for a missing ``pid``)."""
+    if pid is None:
+        return []
     return [d for d in enumerate_devices() if d["vendor_id"] == vid and d["product_id"] == pid]
 
 

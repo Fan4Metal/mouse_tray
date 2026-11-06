@@ -43,7 +43,7 @@ def usb_id(model: MouseModel) -> str:
     be checked against Device Manager without conversion.
     """
     ids = f"{model.vid:04X}:{model.pid_wireless:04X}"
-    if model.pid_wired != model.pid_wireless:
+    if model.pid_wired not in (None, model.pid_wireless):
         ids += f" / {model.pid_wired:04X}"
     return ids
 

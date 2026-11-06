@@ -27,12 +27,15 @@ class MouseModel:
     exposes several HID collections and the battery lives on a specific one.
     Set only the ones a given device actually needs to be matched uniquely;
     leave the rest as ``None``.
+
+    ``pid_wired`` is ``None`` when the row has no cable PID of its own -- e.g. a
+    receiver variant whose mouse, on the cable, enumerates as another row.
     """
 
     name: str
     vid: int
     pid_wireless: int
-    pid_wired: int
+    pid_wired: int | None
     usage_page: int | None = None
     usage: int | None = None
     interface: int | None = None

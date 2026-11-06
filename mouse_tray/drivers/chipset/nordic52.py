@@ -41,7 +41,7 @@ _USAGE_PAGE = 0xFF02
 _USAGE = 0x0002
 
 
-def _model(name: str, vid: int, pid_wireless: int, pid_wired: int) -> MouseModel:
+def _model(name: str, vid: int, pid_wireless: int, pid_wired: int | None) -> MouseModel:
     return MouseModel(name, vid, pid_wireless, pid_wired, _USAGE_PAGE, _USAGE)
 
 
@@ -56,9 +56,9 @@ class Nordic52Driver(HidDriver):
         _model("VXE R1 Pro Max", 0x3554, 0xF58A, 0xF58C),
         _model("VXE R1 SE+", 0x3554, 0xF58E, 0xF58F),
         # The 1K receiver enumerates under VID 373B (like the MAD R line), not
-        # the 3554 of the stock dongle. No cable PID was captured with it (on the
-        # cable the mouse is presumably the row above), so the dongle PID stands in.
-        _model("VXE R1 SE+ (1K dongle)", 0x373B, 0x1085, 0x1085),
+        # the 3554 of the stock dongle. On the cable the mouse is 3554:F58F, i.e.
+        # the row above, so this row has no wired PID of its own.
+        _model("VXE R1 SE+ (1K dongle)", 0x373B, 0x1085, None),
         _model("VGN F1 Pro", 0x3554, 0xF503, 0xF502),
         _model("VGN F2 Pro Max", 0x3554, 0xFB3E, 0xFB3D),
         # Compx rebrand on the same silicon; receiver F524, direct cable F526.
